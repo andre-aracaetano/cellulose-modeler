@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use dynamics_cellulose, cite this software and the experimental cellulose I-beta structure below."
+title: "dynamics_cellulose"
+type: software
+version: 0.2.0
+date-released: 2026-08-21
+authors:
+  - family-names: "Caetano"
+    given-names: "André de Araújo"
+references:
+  - type: article
+    title: "Crystal Structure and Hydrogen-Bonding System in Cellulose Iβ from Synchrotron X-ray and Neutron Fiber Diffraction"
+    authors:
+      - family-names: "Nishiyama"
+        given-names: "Yoshiharu"
+      - family-names: "Langan"
+        given-names: "Paul"
+      - family-names: "Chanzy"
+        given-names: "Henri"
+    journal: "Journal of the American Chemical Society"
+    volume: 124
+    start: 9074
+    end: 9082
+    year: 2002
+    doi: "10.1021/ja0257319"
+  - type: dataset
+    title: "Cellulose I-beta crystal structure, COD 4114994"
+    url: "https://www.crystallography.net/cod/4114994.html"

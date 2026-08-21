@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Local intermediate reference; the generator reads the experimental CIF only.
+dynamics_cellulose/data/ibeta_reference_dp20.pdb

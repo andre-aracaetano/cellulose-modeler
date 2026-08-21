@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dynamics-cellulose"
+version = "0.2.0"
+description = "Pure-Python builder for cellulose I-beta from open experimental CIF data"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+dynamics-cellulose = "dynamics_cellulose.cli:main"
+
+[tool.setuptools.package-data]
+dynamics_cellulose = ["data/*.cif", "data/*.md"]
