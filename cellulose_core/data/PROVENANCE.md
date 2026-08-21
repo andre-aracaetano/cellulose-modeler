@@ -13,7 +13,7 @@ Fiber Diffraction.” *Journal of the American Chemical Society* 124 (2002),
 
 COD identifier: 4114994.
 
-`dynamics_cellulose` reads the fractional coordinates, applies the deposited
+`cellulose_core` reads the fractional coordinates, applies the deposited
 space-group operation, converts them through the experimental unit-cell matrix,
 and constructs finite chains and crystallites. The distributed data directory
 contains no coordinate output copied from Cellulose Builder or CHARMM-GUI.

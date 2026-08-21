@@ -29,7 +29,7 @@ def _number(value: str) -> float:
 
 class CrystallographicReference:
     def __init__(self) -> None:
-        path = files("dynamics_cellulose").joinpath("data/COD_4114994_cellulose_Ibeta.cif")
+        path = files("cellulose_core").joinpath("data/COD_4114994_cellulose_Ibeta.cif")
         text = path.read_text(encoding="utf-8")
         self.a = self._tag(text, "_cell_length_a")
         self.b = self._tag(text, "_cell_length_b")

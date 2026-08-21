@@ -1,12 +1,14 @@
 import tempfile
 import unittest
 from pathlib import Path
+import subprocess
+import sys
 
-from dynamics_cellulose.builder import build_structure
-from dynamics_cellulose.geometry import distance
-from dynamics_cellulose.pdbio import write_pdb
-from dynamics_cellulose.reference import REFERENCE
-from dynamics_cellulose.validation import validate
+from cellulose_core.builder import build_structure
+from cellulose_core.geometry import distance
+from cellulose_core.pdbio import write_pdb
+from cellulose_core.reference import REFERENCE
+from cellulose_core.validation import validate
 
 
 class BuilderTests(unittest.TestCase):
@@ -58,6 +60,20 @@ class BuilderTests(unittest.TestCase):
             self.assertEqual({line[21] for line in atom_lines}, {"A", "B", "C", "D"})
             self.assertTrue(any(line.startswith("CONECT") for line in path.read_text().splitlines()))
             self.assertEqual(sum(line.startswith("TER") for line in path.read_text().splitlines()), 4)
+
+    def test_root_builder_creates_default_output_directory(self):
+        root_builder = Path(__file__).resolve().parents[1] / "builder.py"
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run(
+                [sys.executable, str(root_builder), "--dp", "1"],
+                cwd=directory,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            output = Path(directory) / "outputs" / "cellulose.pdb"
+            self.assertTrue(output.is_file())
+            self.assertIn("Atoms: 24", result.stdout)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Configurable cellulose I-beta structure generator."""
+"""Core functions for the configurable cellulose I-beta generator."""
 
 from .builder import build_structure
 from .pdbio import write_pdb

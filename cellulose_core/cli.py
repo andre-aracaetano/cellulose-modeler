@@ -34,7 +34,13 @@ def parser() -> argparse.ArgumentParser:
     layout.add_argument("--layers", type=parse_layers, help="chains per row, top-to-bottom")
     layout.add_argument("--preset", choices=sorted(PRESETS))
     result.add_argument("--glucose", "--dp", type=int, default=20, dest="glucose")
-    result.add_argument("--output", "-o", type=Path, default=Path("cellulose.pdb"))
+    result.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        default=Path("outputs/cellulose.pdb"),
+        help="output PDB path (default: outputs/cellulose.pdb)",
+    )
     result.add_argument("--no-conect", action="store_true", help="omit explicit PDB CONECT records")
     result.add_argument("--interactive", "-i", action="store_true", help="ask for specifications")
     return result
@@ -56,6 +62,7 @@ def main() -> None:
     layers = args.layers if args.layers is not None else PRESETS[args.preset or "single"]
     structure = build_structure(args.glucose, layers)
     report = validate(structure)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
     write_pdb(args.output, structure, conect=not args.no_conect)
     print(f"Allomorph: cellulose {structure.allomorph}")
     print(f"Layers: {','.join(map(str, structure.layers))}")

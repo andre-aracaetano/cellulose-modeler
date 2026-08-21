@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.scripts]
-dynamics-cellulose = "dynamics_cellulose.cli:main"
+dynamics-cellulose = "cellulose_core.cli:main"
 
 [tool.setuptools.package-data]
-dynamics_cellulose = ["data/*.cif", "data/*.md"]
+cellulose_core = ["data/*.cif", "data/*.md"]

@@ -2,7 +2,9 @@
 
 `dynamics_cellulose` is a dependency-free Python generator for finite cellulose
 Iβ chains and crystallites with arbitrary degrees of polymerization and
-transverse row profiles.
+transverse row profiles. The user-facing launcher is `builder.py`; reusable
+implementation modules live in `cellulose_core/`, and generated structures go
+to `outputs/` by default.
 
 ## Scientific basis and provenance
 
@@ -26,37 +28,41 @@ unit cell, repeats the crystallographic motif to the requested DP, places the
 two independent chain types on discrete Iβ sites, and writes the selected row
 profile as PDB.
 
-See [the detailed data provenance](dynamics_cellulose/data/PROVENANCE.md) and
+See [the detailed data provenance](cellulose_core/data/PROVENANCE.md) and
 [`CITATION.cff`](CITATION.cff).
 
 ## Quick start
 
-Run from this directory without installing anything:
+Download the project, open a terminal in its root directory, and run:
 
 ```bash
-PYTHONPATH=. python3 -m dynamics_cellulose --dp 20 --preset 18 -o cellulose_18.pdb
+python builder.py --dp 20 --preset 18
 ```
+
+The resulting file is written to `outputs/cellulose.pdb`. The directory is
+created automatically when needed. On systems where Python 3 is exposed as
+`python3` (commonly Linux and macOS), use `python3 builder.py` instead.
 
 An arbitrary transverse arrangement is a comma-separated list of chain counts
 from top to bottom:
 
 ```bash
-PYTHONPATH=. python3 -m dynamics_cellulose \
+python builder.py \
   --dp 16 \
   --layers 3,5,7,7,5,3 \
-  --output custom_cellulose.pdb
+  --output outputs/custom_cellulose.pdb
 ```
 
 For one chain with any positive DP:
 
 ```bash
-PYTHONPATH=. python3 -m dynamics_cellulose --dp 37 --preset single -o chain_DP37.pdb
+python builder.py --dp 37 --preset single -o outputs/chain_DP37.pdb
 ```
 
 Question-and-answer mode:
 
 ```bash
-PYTHONPATH=. python3 -m dynamics_cellulose --interactive
+python builder.py --interactive
 ```
 
 Available presets are `single`, `18` (`2,3,4,4,3,2`) and `36`
@@ -105,7 +111,7 @@ can remove those serialization limits.
 ## Tests
 
 ```bash
-PYTHONPATH=. python3 -m unittest discover -s tests -v
+python -m unittest discover -s tests -v
 ```
 
 The checks include odd-DP chains, the 18-chain profile, fixed-column PDB
