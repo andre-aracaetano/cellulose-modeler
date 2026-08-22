@@ -6,6 +6,10 @@ transverse row profiles. The user-facing launcher is `builder.py`; reusable
 implementation modules live in `cellulose_core/`, and generated structures go
 to `outputs/` by default.
 
+Version 0.3 adds optional, reproducible C6 oxidation to protonated carboxylic
+acid (`COOH`) or deprotonated carboxylate (`COO-`) groups. Oxidation can be
+restricted to surface chains or applied across the complete crystallite.
+
 ## Scientific basis and provenance
 
 The program constructs cellulose Iβ directly from the experimental fractional
@@ -65,6 +69,21 @@ Question-and-answer mode:
 python builder.py --interactive
 ```
 
+Randomly oxidize 25% of the C6 sites on surface chains to carboxylate groups:
+
+```bash
+python builder.py --dp 20 --preset 18 --oxidation 0.25 \
+  --oxidation-scope surface --oxidation-state deprotonated --seed 20260822 \
+  -o outputs/cnf_18x20_ox25_surface_deprotonated.pdb
+```
+
+Oxidation is disabled unless `--oxidation` is supplied. Surface chains are the
+chains in the top and bottom rows plus both boundary chains of every intermediate
+row. The requested fraction is applied to all C6 sites eligible under the chosen
+scope, rounded to the nearest whole site. Selection is random; use `--seed` to
+make it reproducible. Deprotonated `COO-` is the default oxidation state, while
+`--oxidation-state protonated` generates neutral `COOH`.
+
 Available presets are `single`, `18` (`2,3,4,4,3,2`) and `36`
 (`3,4,5,6,6,5,4,3`). Presets are conveniences only; `--layers` accepts any
 positive row profile that fits within classic PDB limits.
@@ -83,6 +102,10 @@ reference. All currently available options are listed below.
 | `--preset 36` | Build the 36-chain geometry `3,4,5,6,6,5,4,3`. | Not set |
 | `--output PATH`, `-o PATH` | Select the generated PDB filename and directory. Missing parent directories are created automatically. | `outputs/cellulose.pdb` |
 | `--no-conect` | Omit all PDB `CONECT` records. This produces a smaller file but is not recommended for CHARMM-GUI or other carbohydrate readers that rely on explicit bonds. | Connectivity included |
+| `--oxidation FRACTION` | Enable random C6 oxidation at a degree from `0.1` to `1.0`. | Disabled |
+| `--oxidation-scope surface\|all` | Restrict eligible C6 sites to boundary chains or include every chain. | `surface` |
+| `--oxidation-state deprotonated\|protonated` | Generate `COO-` or neutral `COOH`. | `deprotonated` |
+| `--seed N` | Fix random selection for reproducible structures. | Random |
 | `--interactive`, `-i` | Ask interactively for DP, layers, and output path instead of requiring those values on the command line. A blank layers answer selects one chain. | Disabled |
 | `--help`, `-h` | Display the command reference and exit. | — |
 
@@ -144,9 +167,31 @@ dihedrals; generating a PSF still requires a carbohydrate topology and the
 β(1→4) linkage/terminal patches in the selected preparation program. Hydroxyl
 orientations should be relaxed during the normal minimization/equilibration.
 
+## C6 oxidation model
+
+Oxidation converts the primary C6 alcohol into a planar carboxyl group. The
+original `H61`, `H62`, `O6`, and `HO6` atoms are removed and replaced with
+`O61` and `O62`, matching the atom naming observed in CHARMM-GUI carbohydrate
+output. Protonated groups additionally contain `HO62`. Deprotonated sites each
+have a nominal charge of `-1 e`; the PDB records composition and connectivity,
+while partial atomic charges and force-field parameters remain the
+responsibility of the subsequent topology/PSF preparation step.
+
+For `surface` scope, eligible chains are those in the top and bottom rows plus
+the two boundary chains in every intermediate row. For the 18-chain profile,
+this selects 12 surface chains and leaves 6 interior chains unchanged. The
+oxidation degree is calculated over all glucose residues in the eligible
+chains. The nearest whole number of sites is sampled without replacement.
+
+The generated coordinates are an initial chemical geometry based on the
+CHARMM-GUI reference supplied during development: approximately 1.26 A C6-O
+bonds and trigonal-planar carboxyl geometry. As with hydroxyl orientations,
+oxidized structures should undergo normal force-field assignment,
+minimization, and equilibration before production dynamics.
+
 ## Current scope and limits
 
-Version 0.2 implements finite cellulose Iβ. Other allomorphs require their own
+Version 0.3 implements finite cellulose Iβ and optional C6 oxidation. Other allomorphs require their own
 experimental datasets and symmetry implementations; they must not be
 approximated by changing Iβ lattice dimensions.
 

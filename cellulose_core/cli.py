@@ -64,6 +64,29 @@ def parser() -> argparse.ArgumentParser:
         help="omit PDB CONECT records (not recommended for carbohydrate readers)",
     )
     result.add_argument(
+        "--oxidation",
+        type=float,
+        metavar="FRACTION",
+        help="random C6 oxidation degree from 0.1 to 1.0 (disabled by default)",
+    )
+    result.add_argument(
+        "--oxidation-scope",
+        choices=("surface", "all"),
+        default="surface",
+        help="oxidize boundary chains only or all chains (default: surface)",
+    )
+    result.add_argument(
+        "--oxidation-state",
+        choices=("deprotonated", "protonated"),
+        default="deprotonated",
+        help="generate COO- or COOH groups (default: deprotonated)",
+    )
+    result.add_argument(
+        "--seed",
+        type=int,
+        help="random seed for reproducible oxidation-site selection",
+    )
+    result.add_argument(
         "--interactive", "-i", action="store_true", help="ask for DP, layers, and output path"
     )
     return result
@@ -82,8 +105,17 @@ def main() -> None:
             args.output = Path(output_text)
     if args.glucose < 1:
         raise SystemExit("error: --glucose/--dp must be at least 1")
+    if args.oxidation is not None and not 0.1 <= args.oxidation <= 1.0:
+        raise SystemExit("error: --oxidation must be between 0.1 and 1.0")
     layers = args.layers if args.layers is not None else PRESETS[args.preset or "single"]
-    structure = build_structure(args.glucose, layers)
+    structure = build_structure(
+        args.glucose,
+        layers,
+        oxidation_degree=args.oxidation or 0.0,
+        oxidation_scope=args.oxidation_scope,
+        oxidation_protonated=args.oxidation_state == "protonated",
+        oxidation_seed=args.seed,
+    )
     report = validate(structure)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     write_pdb(args.output, structure, conect=not args.no_conect)
@@ -93,6 +125,9 @@ def main() -> None:
     print(f"Glucose units per chain: {structure.glucose_units}")
     print(f"Residues: {report.residues}")
     print(f"Atoms: {report.atoms}")
+    if report.oxidized_sites:
+        print(f"Oxidized C6 sites: {report.oxidized_sites}")
+        print(f"Nominal net charge: {report.net_charge:+d} e")
     if report.glycosidic_min is not None:
         print(
             f"Glycosidic C1-O4 range: {report.glycosidic_min:.3f} - "

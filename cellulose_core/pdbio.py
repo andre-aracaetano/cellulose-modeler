@@ -37,6 +37,19 @@ def write_pdb(path: str | Path, structure: Structure, conect: bool = True) -> No
         f"REMARK  Layers top-to-bottom: {','.join(map(str, structure.layers))}",
         f"REMARK  Chains: {len(structure.chains)}",
     ]
+    oxidized_count = sum(
+        residue.oxidized for chain in structure.chains for residue in chain.residues
+    )
+    if structure.oxidation_scope is not None:
+        state = "protonated COOH" if structure.oxidation_protonated else "deprotonated COO-"
+        lines.extend((
+            "REMARK  C6 oxidation enabled",
+            f"REMARK  Oxidation scope: {structure.oxidation_scope}",
+            f"REMARK  Requested oxidation degree: {structure.oxidation_degree:.6f}",
+            f"REMARK  Oxidized C6 sites: {oxidized_count}",
+            f"REMARK  Oxidation state: {state}",
+            f"REMARK  Random seed: {structure.oxidation_seed}",
+        ))
     serial = 1
     serials: dict[tuple[int, int, str], int] = {}
     bonds: set[tuple[int, int]] = set()
@@ -72,6 +85,11 @@ def write_pdb(path: str | Path, structure: Structure, conect: bool = True) -> No
                     b = serials[(chain.number, residue.number, second)]
                     bonds.add(tuple(sorted((a, b))))
             for first, second in (("O4", "HO4"), ("C1", "O1"), ("O1", "HO1")):
+                if first in names and second in names:
+                    a = serials[(chain.number, residue.number, first)]
+                    b = serials[(chain.number, residue.number, second)]
+                    bonds.add(tuple(sorted((a, b))))
+            for first, second in (("C6", "O61"), ("C6", "O62"), ("O62", "HO62")):
                 if first in names and second in names:
                     a = serials[(chain.number, residue.number, first)]
                     b = serials[(chain.number, residue.number, second)]

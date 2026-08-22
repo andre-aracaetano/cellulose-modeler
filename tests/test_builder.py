@@ -61,6 +61,52 @@ class BuilderTests(unittest.TestCase):
             self.assertTrue(any(line.startswith("CONECT") for line in path.read_text().splitlines()))
             self.assertEqual(sum(line.startswith("TER") for line in path.read_text().splitlines()), 4)
 
+    def test_surface_c6_oxidation_is_reproducible_and_complete(self):
+        structure = build_structure(
+            20,
+            [2, 3, 4, 4, 3, 2],
+            oxidation_degree=0.25,
+            oxidation_scope="surface", oxidation_seed=20260822,
+        )
+        report = validate(structure)
+        oxidized = [
+            (chain.number, residue.number)
+            for chain in structure.chains
+            for residue in chain.residues
+            if residue.oxidized
+        ]
+        self.assertEqual(len(oxidized), 60)
+        self.assertEqual(report.net_charge, -60)
+        surface_chain_numbers = {1, 2, 3, 5, 6, 9, 10, 13, 14, 16, 17, 18}
+        self.assertTrue(all(chain in surface_chain_numbers for chain, _ in oxidized))
+        residue = next(
+            residue for chain in structure.chains for residue in chain.residues if residue.oxidized
+        )
+        names = {atom.name for atom in residue.atoms}
+        self.assertTrue({"C6", "O61", "O62"} <= names)
+        self.assertFalse({"H61", "H62", "O6", "HO6", "HO62"} & names)
+        self.assertAlmostEqual(
+            distance(residue.atom("C6").position, residue.atom("O61").position), 1.26
+        )
+
+    def test_protonated_all_chain_oxidation(self):
+        structure = build_structure(
+            10,
+            [2, 2],
+            oxidation_degree=0.1,
+            oxidation_scope="all",
+            oxidation_protonated=True, oxidation_seed=7,
+        )
+        report = validate(structure)
+        self.assertEqual(report.oxidized_sites, 4)
+        self.assertEqual(report.net_charge, 0)
+        oxidized = [r for c in structure.chains for r in c.residues if r.oxidized]
+        self.assertTrue(all("HO62" in {atom.name for atom in r.atoms} for r in oxidized))
+
+    def test_oxidation_degree_validation(self):
+        with self.assertRaises(ValueError):
+            build_structure(2, [1], oxidation_degree=0.09)
+
     def test_root_builder_creates_default_output_directory(self):
         root_builder = Path(__file__).resolve().parents[1] / "builder.py"
         with tempfile.TemporaryDirectory() as directory:

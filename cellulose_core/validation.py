@@ -14,6 +14,8 @@ class Validation:
     glycosidic_min: float | None
     glycosidic_max: float | None
     chain_spacing_min: float | None
+    oxidized_sites: int
+    net_charge: int
 
 
 def validate(structure: Structure) -> Validation:
@@ -47,4 +49,11 @@ def validate(structure: Structure) -> Validation:
         glycosidic_min=min(distances) if distances else None,
         glycosidic_max=max(distances) if distances else None,
         chain_spacing_min=min(spacings) if spacings else None,
+        oxidized_sites=sum(
+            residue.oxidized for chain in structure.chains for residue in chain.residues
+        ),
+        net_charge=-sum(
+            residue.oxidized and not residue.oxidation_protonated
+            for chain in structure.chains for residue in chain.residues
+        ),
     )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import random
 from statistics import mean
 
 from .geometry import add, cross, dot, norm, normalize, scale, sub
@@ -74,6 +75,70 @@ def _center_transverse(chains: list[Chain]) -> None:
                 atom.position = add(atom.position, shift)
 
 
+def _surface_chains(chains: list[Chain]) -> list[Chain]:
+    """Return chains on the boundary of the requested row profile."""
+    last_row = max(chain.row for chain in chains)
+    row_columns: dict[int, list[int]] = {}
+    for chain in chains:
+        row_columns.setdefault(chain.row, []).append(chain.column)
+    return [
+        chain
+        for chain in chains
+        if chain.row in (0, last_row)
+        or chain.column in (min(row_columns[chain.row]), max(row_columns[chain.row]))
+    ]
+
+
+def _oxidize_residue(residue: Residue, protonated: bool) -> None:
+    """Convert the primary C6 alcohol to a C6 carboxyl group."""
+    carbon5 = residue.atom("C5")
+    carbon6 = residue.atom("C6")
+    oxygen6 = residue.atom("O6")
+    outward = normalize(sub(carbon6.position, carbon5.position))
+    old_oxygen = sub(oxygen6.position, carbon6.position)
+    projected = sub(old_oxygen, scale(outward, dot(old_oxygen, outward)))
+    if norm(projected) < 1e-8:
+        seed_axis = min(
+            ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)),
+            key=lambda candidate: abs(dot(outward, candidate)),
+        )
+        projected = cross(outward, seed_axis)
+    perpendicular = normalize(projected)
+    cosine, sine = 0.5, math.sqrt(3.0) / 2.0
+    first_direction = add(scale(outward, cosine), scale(perpendicular, sine))
+    second_direction = sub(scale(outward, cosine), scale(perpendicular, sine))
+
+    residue.atoms = [
+        atom for atom in residue.atoms if atom.name not in {"H61", "H62", "O6", "HO6"}
+    ]
+    first_length = 1.21 if protonated else 1.26
+    second_length = 1.31 if protonated else 1.26
+    oxygen61 = Atom("O61", "O", add(carbon6.position, scale(first_direction, first_length)))
+    oxygen62 = Atom("O62", "O", add(carbon6.position, scale(second_direction, second_length)))
+    residue.atoms.extend((oxygen61, oxygen62))
+    if protonated:
+        hydroxyl_direction = normalize(sub(oxygen62.position, carbon6.position))
+        residue.atoms.append(
+            Atom("HO62", "H", add(oxygen62.position, scale(hydroxyl_direction, 0.96)))
+        )
+    residue.oxidized = True
+    residue.oxidation_protonated = protonated
+
+
+def _apply_oxidation(
+    chains: list[Chain], degree: float, scope: str, protonated: bool, seed: int | None
+) -> None:
+    if not 0.1 <= degree <= 1.0:
+        raise ValueError("oxidation_degree must be between 0.1 and 1.0")
+    if scope not in {"surface", "all"}:
+        raise ValueError("oxidation_scope must be 'surface' or 'all'")
+    eligible_chains = _surface_chains(chains) if scope == "surface" else chains
+    eligible = [residue for chain in eligible_chains for residue in chain.residues]
+    count = min(len(eligible), math.floor(len(eligible) * degree + 0.5))
+    for residue in random.Random(seed).sample(eligible, count):
+        _oxidize_residue(residue, protonated)
+
+
 def _hydroxyl_position(
     oxygen: Atom, carbon: Atom, occupied: list[Vec3], bond_length: float = 0.96
 ) -> Vec3:
@@ -132,8 +197,9 @@ def _add_missing_hydroxyl_hydrogens(chains: list[Chain]) -> None:
             hydroxyls = [
                 ("O2", "C2", "HO2"),
                 ("O3", "C3", "HO3"),
-                ("O6", "C6", "HO6"),
             ]
+            if not residue.oxidized:
+                hydroxyls.append(("O6", "C6", "HO6"))
             if residue.number == 1:
                 hydroxyls.append(("O4", "C4", "HO4"))
             if residue.number == last:
@@ -146,7 +212,14 @@ def _add_missing_hydroxyl_hydrogens(chains: list[Chain]) -> None:
                 occupied.append(position)
 
 
-def build_structure(glucose_units: int, layers: list[int]) -> Structure:
+def build_structure(
+    glucose_units: int,
+    layers: list[int],
+    oxidation_degree: float = 0.0,
+    oxidation_scope: str = "surface",
+    oxidation_protonated: bool = False,
+    oxidation_seed: int | None = None,
+) -> Structure:
     if glucose_units < 1:
         raise ValueError("glucose_units must be at least 1")
     if not layers or any(count < 1 for count in layers):
@@ -157,6 +230,14 @@ def build_structure(glucose_units: int, layers: list[int]) -> Structure:
             _lattice_sites(layers), start=1
         )
     ]
+    if oxidation_degree:
+        _apply_oxidation(
+            chains, oxidation_degree, oxidation_scope, oxidation_protonated, oxidation_seed
+        )
     _add_missing_hydroxyl_hydrogens(chains)
     _center_transverse(chains)
-    return Structure("I-beta", list(layers), glucose_units, chains)
+    return Structure(
+        "I-beta", list(layers), glucose_units, chains,
+        oxidation_scope if oxidation_degree else None,
+        oxidation_degree, oxidation_protonated, oxidation_seed,
+    )
