@@ -1,4 +1,4 @@
-# dynamics_cellulose
+# Dynamics Cellulose Maker
 
 `dynamics_cellulose` is a dependency-free Python generator for finite cellulose
 Iβ chains and crystallites with arbitrary degrees of polymerization and
