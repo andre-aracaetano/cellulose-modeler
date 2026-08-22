@@ -31,9 +31,26 @@ def parser() -> argparse.ArgumentParser:
         description="Generate cellulose I-beta chains and configurable crystallites as PDB.",
     )
     layout = result.add_mutually_exclusive_group()
-    layout.add_argument("--layers", type=parse_layers, help="chains per row, top-to-bottom")
-    layout.add_argument("--preset", choices=sorted(PRESETS))
-    result.add_argument("--glucose", "--dp", type=int, default=20, dest="glucose")
+    layout.add_argument(
+        "--layers",
+        type=parse_layers,
+        metavar="N,N,...",
+        help="chains in each crystal row from top to bottom, e.g. 2,3,4,4,3,2",
+    )
+    layout.add_argument(
+        "--preset",
+        choices=sorted(PRESETS),
+        help="predefined transverse geometry (default: single)",
+    )
+    result.add_argument(
+        "--glucose",
+        "--dp",
+        type=int,
+        default=20,
+        dest="glucose",
+        metavar="N",
+        help="glucose units in every cellulose chain (default: 20)",
+    )
     result.add_argument(
         "--output",
         "-o",
@@ -41,8 +58,14 @@ def parser() -> argparse.ArgumentParser:
         default=Path("outputs/cellulose.pdb"),
         help="output PDB path (default: outputs/cellulose.pdb)",
     )
-    result.add_argument("--no-conect", action="store_true", help="omit explicit PDB CONECT records")
-    result.add_argument("--interactive", "-i", action="store_true", help="ask for specifications")
+    result.add_argument(
+        "--no-conect",
+        action="store_true",
+        help="omit PDB CONECT records (not recommended for carbohydrate readers)",
+    )
+    result.add_argument(
+        "--interactive", "-i", action="store_true", help="ask for DP, layers, and output path"
+    )
     return result
 
 
