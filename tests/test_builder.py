@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 import subprocess
 import sys
+from collections import defaultdict
 
 from cellulose_core.builder import build_structure
 from cellulose_core.geometry import distance
@@ -30,7 +31,81 @@ class BuilderTests(unittest.TestCase):
         report = validate(structure)
         self.assertEqual(report.chains, 18)
         self.assertEqual(report.residues, 360)
-        self.assertEqual(report.atoms, 18 * (21 * 20 + 3))
+        self.assertEqual(report.atoms, 7614)
+
+    def test_unmodified_18x20_has_intact_c6_on_every_residue(self):
+        structure = build_structure(20, [2, 3, 4, 4, 3, 2])
+        self.assertEqual(sum(len(chain.residues) for chain in structure.chains), 360)
+        for chain in structure.chains:
+            for residue in chain.residues:
+                names = [atom.name for atom in residue.atoms]
+                self.assertEqual(len(names), len(set(names)))
+                self.assertTrue({"C6", "H61", "H62", "O6", "HO6"} <= set(names))
+                self.assertNotIn("H63", names)
+                self.assertFalse(residue.oxidized)
+
+    def test_chain_13_even_residues_keep_primary_alcohol(self):
+        chain = build_structure(20, [2, 3, 4, 4, 3, 2]).chains[12]
+        self.assertEqual(chain.number, 13)
+        for residue in chain.residues[1::2]:
+            self.assertEqual(residue.number % 2, 0)
+            names = {atom.name for atom in residue.atoms}
+            self.assertTrue({"H61", "H62", "O6", "HO6"} <= names)
+            self.assertNotIn("H63", names)
+
+    def test_small_multichain_structure_has_no_parity_dependent_chemistry(self):
+        structure = build_structure(4, [2, 2])
+        signatures = {
+            (chain.number, residue.number): {
+                atom.name for atom in residue.atoms
+                if atom.name in {"H61", "H62", "H63", "O6", "HO6"}
+            }
+            for chain in structure.chains for residue in chain.residues
+        }
+        self.assertEqual(set(map(frozenset, signatures.values())), {
+            frozenset({"H61", "H62", "O6", "HO6"})
+        })
+
+    def test_unmodified_pdb_c6_conect_and_output_are_deterministic(self):
+        structure = build_structure(20, [2, 3, 4, 4, 3, 2])
+        with tempfile.TemporaryDirectory() as directory:
+            first = Path(directory) / "first.pdb"
+            second = Path(directory) / "second.pdb"
+            write_pdb(first, structure)
+            write_pdb(second, build_structure(20, [2, 3, 4, 4, 3, 2]))
+            self.assertEqual(first.read_bytes(), second.read_bytes())
+            lines = first.read_text().splitlines()
+            atom_lines = [line for line in lines if line.startswith("ATOM")]
+            self.assertEqual(len(atom_lines), 7614)
+            self.assertEqual({line[17:21].strip() for line in atom_lines}, {"BGLC"})
+            self.assertFalse(any(line[12:16].strip() == "H63" for line in atom_lines))
+
+            atoms = {int(line[6:11]): line for line in atom_lines}
+            adjacency = defaultdict(set)
+            for line in lines:
+                if line.startswith("CONECT"):
+                    values = [int(line[i:i + 5]) for i in range(6, len(line), 5)]
+                    adjacency[values[0]].update(values[1:])
+            by_key = {
+                (line[21], int(line[22:26]), line[12:16].strip()): serial
+                for serial, line in atoms.items()
+            }
+            for residue_number in range(2, 21, 2):
+                c6 = by_key[("M", residue_number, "C6")]
+                o6 = by_key[("M", residue_number, "O6")]
+                ho6 = by_key[("M", residue_number, "HO6")]
+                self.assertIn(o6, adjacency[c6])
+                self.assertIn(ho6, adjacency[o6])
+
+    def test_validation_rejects_accidental_6_deoxy_residue(self):
+        structure = build_structure(2, [1])
+        residue = structure.chains[0].residues[1]
+        residue.atoms = [
+            atom for atom in residue.atoms if atom.name not in {"O6", "HO6"}
+        ]
+        residue.atoms.append(type(residue.atoms[0])("H63", "H", residue.atom("C6").position))
+        with self.assertRaisesRegex(ValueError, "unexpected 6-deoxy H63"):
+            validate(structure)
 
     def test_all_hydroxyls_and_chain_ends_are_complete(self):
         structure = build_structure(3, [1])

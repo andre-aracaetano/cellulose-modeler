@@ -6,6 +6,15 @@ from .geometry import distance
 from .model import Structure
 
 
+NORMAL_GLUCOSE_ELEMENTS = {
+    "C1": "C", "C2": "C", "C3": "C", "C4": "C", "C5": "C", "C6": "C",
+    "H1": "H", "H2": "H", "H3": "H", "H4": "H", "H5": "H",
+    "H61": "H", "H62": "H",
+    "O2": "O", "O3": "O", "O4": "O", "O5": "O", "O6": "O",
+    "HO2": "H", "HO3": "H", "HO6": "H",
+}
+
+
 @dataclass(frozen=True)
 class Validation:
     chains: int
@@ -25,6 +34,48 @@ def validate(structure: Structure) -> Validation:
         raise ValueError(f"residue count mismatch: expected {expected_residues}, found {residues}")
     distances = []
     for chain in structure.chains:
+        last_residue = len(chain.residues)
+        for residue in chain.residues:
+            names = [atom.name for atom in residue.atoms]
+            if len(names) != len(set(names)):
+                raise ValueError(
+                    f"duplicate atom name in chain {chain.number}, residue {residue.number}"
+                )
+            atoms = {atom.name: atom for atom in residue.atoms}
+            if "H63" in atoms:
+                raise ValueError(
+                    f"unexpected 6-deoxy H63 in chain {chain.number}, residue {residue.number}"
+                )
+            if not residue.oxidized:
+                missing = set(NORMAL_GLUCOSE_ELEMENTS) - atoms.keys()
+                if missing:
+                    raise ValueError(
+                        f"incomplete glucose in chain {chain.number}, residue "
+                        f"{residue.number}: missing {', '.join(sorted(missing))}"
+                    )
+                for name, element in NORMAL_GLUCOSE_ELEMENTS.items():
+                    if atoms[name].element != element:
+                        raise ValueError(
+                            f"wrong element for {name} in chain {chain.number}, "
+                            f"residue {residue.number}"
+                        )
+                for first, second, lower, upper in (
+                    ("C5", "C6", 1.40, 1.65),
+                    ("C6", "O6", 1.30, 1.55),
+                    ("C6", "H61", 0.95, 1.20),
+                    ("C6", "H62", 0.95, 1.20),
+                    ("O6", "HO6", 0.90, 1.05),
+                ):
+                    value = distance(atoms[first].position, atoms[second].position)
+                    if not lower <= value <= upper:
+                        raise ValueError(
+                            f"implausible {first}-{second} distance in chain "
+                            f"{chain.number}, residue {residue.number}: {value:.3f} A"
+                        )
+            if residue.number == 1 and "HO4" not in atoms:
+                raise ValueError(f"missing HO4 at the start of chain {chain.number}")
+            if residue.number == last_residue and not {"O1", "HO1"} <= atoms.keys():
+                raise ValueError(f"incomplete reducing end of chain {chain.number}")
         for index in range(len(chain.residues) - 1):
             distances.append(
                 distance(
