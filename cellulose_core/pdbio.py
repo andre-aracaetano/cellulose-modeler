@@ -6,6 +6,9 @@ from .model import Structure
 
 
 CHAIN_IDS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+# HO62 is intentionally retained: unlike alcohol hydroxyl hydrogens, it
+# explicitly distinguishes a requested neutral COOH from COO- chemistry.
+HYDROXYL_HYDROGENS = frozenset({"HO1", "HO2", "HO3", "HO4", "HO6"})
 
 RESIDUE_BONDS = (
     ("C1", "H1"), ("C1", "C2"), ("C1", "O5"),
@@ -21,7 +24,18 @@ def _atom_field(name: str) -> str:
     return f" {name:<3}" if len(name) < 4 else name[:4]
 
 
-def write_pdb(path: str | Path, structure: Structure, conect: bool = True) -> None:
+def write_pdb(
+    path: str | Path,
+    structure: Structure,
+    conect: bool = True,
+    charmm_gui: bool = False,
+) -> None:
+    """Write a conventional or CHARMM-GUI-ready PDB.
+
+    The CHARMM-GUI profile omits hydroxyl hydrogen coordinates and writes each
+    chain in the O4(i)-C1(i+1) direction expected by the carbohydrate reader.
+    Heavy atoms and carbon-bound hydrogens are never removed.
+    """
     if len(structure.chains) > len(CHAIN_IDS):
         raise ValueError("PDB supports at most 62 distinct one-character chain IDs")
     lines = [
@@ -37,6 +51,12 @@ def write_pdb(path: str | Path, structure: Structure, conect: bool = True) -> No
         f"REMARK  Layers top-to-bottom: {','.join(map(str, structure.layers))}",
         f"REMARK  Chains: {len(structure.chains)}",
     ]
+    if charmm_gui:
+        lines.extend((
+            "REMARK  CHARMM-GUI input profile enabled",
+            "REMARK  Hydroxyl H coordinates omitted for topology-based placement",
+            "REMARK  Residue blocks ordered for O4(i)-C1(i+1) recognition",
+        ))
     oxidized_count = sum(
         residue.oxidized for chain in structure.chains for residue in chain.residues
     )
@@ -56,8 +76,13 @@ def write_pdb(path: str | Path, structure: Structure, conect: bool = True) -> No
     for chain in structure.chains:
         chain_id = CHAIN_IDS[chain.number - 1]
         segment = f"C{chain.number:03d}"
-        for residue in chain.residues:
-            for atom in residue.atoms:
+        output_residues = list(reversed(chain.residues)) if charmm_gui else chain.residues
+        for output_number, residue in enumerate(output_residues, start=1):
+            atoms = (
+                atom for atom in residue.atoms
+                if not charmm_gui or atom.name not in HYDROXYL_HYDROGENS
+            )
+            for atom in atoms:
                 if serial > 99999:
                     raise ValueError(
                         "structure exceeds the 99,999-atom limit of classic PDB; "
@@ -66,10 +91,10 @@ def write_pdb(path: str | Path, structure: Structure, conect: bool = True) -> No
                 x, y, z = atom.position
                 if max(abs(x), abs(y), abs(z)) >= 10000:
                     raise ValueError("coordinate exceeds the classic PDB field limit")
-                serials[(chain.number, residue.number, atom.name)] = serial
+                serials[(chain.number, output_number, atom.name)] = serial
                 lines.append(
                     f"ATOM  {serial:5d} {_atom_field(atom.name)} BGLC{chain_id}"
-                    f"{residue.number:4d}    {x:8.3f}{y:8.3f}{z:8.3f}"
+                    f"{output_number:4d}    {x:8.3f}{y:8.3f}{z:8.3f}"
                     f"{1.0:6.2f}{0.0:6.2f}      {segment:<4}{atom.element:>2}"
                 )
                 serial += 1
@@ -77,26 +102,33 @@ def write_pdb(path: str | Path, structure: Structure, conect: bool = True) -> No
         lines.append(f"TER   {serial:5d}      BGLC{chain_id}{chain.residues[-1].number:4d}")
         serial += 1
 
-        for residue in chain.residues:
-            names = {atom.name for atom in residue.atoms}
+        for output_number, residue in enumerate(output_residues, start=1):
+            names = {
+                atom.name for atom in residue.atoms
+                if not charmm_gui or atom.name not in HYDROXYL_HYDROGENS
+            }
             for first, second in RESIDUE_BONDS:
                 if first in names and second in names:
-                    a = serials[(chain.number, residue.number, first)]
-                    b = serials[(chain.number, residue.number, second)]
+                    a = serials[(chain.number, output_number, first)]
+                    b = serials[(chain.number, output_number, second)]
                     bonds.add(tuple(sorted((a, b))))
             for first, second in (("O4", "HO4"), ("C1", "O1"), ("O1", "HO1")):
                 if first in names and second in names:
-                    a = serials[(chain.number, residue.number, first)]
-                    b = serials[(chain.number, residue.number, second)]
+                    a = serials[(chain.number, output_number, first)]
+                    b = serials[(chain.number, output_number, second)]
                     bonds.add(tuple(sorted((a, b))))
             for first, second in (("C6", "O61"), ("C6", "O62"), ("O62", "HO62")):
                 if first in names and second in names:
-                    a = serials[(chain.number, residue.number, first)]
-                    b = serials[(chain.number, residue.number, second)]
+                    a = serials[(chain.number, output_number, first)]
+                    b = serials[(chain.number, output_number, second)]
                     bonds.add(tuple(sorted((a, b))))
         for resid in range(1, structure.glucose_units):
-            a = serials[(chain.number, resid, "C1")]
-            b = serials[(chain.number, resid + 1, "O4")]
+            if charmm_gui:
+                a = serials[(chain.number, resid, "O4")]
+                b = serials[(chain.number, resid + 1, "C1")]
+            else:
+                a = serials[(chain.number, resid, "C1")]
+                b = serials[(chain.number, resid + 1, "O4")]
             bonds.add(tuple(sorted((a, b))))
 
     if conect:

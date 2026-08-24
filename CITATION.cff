@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use dynamics_cellulose, cite this software and the experimental cellulose I-beta structure below."
 title: "dynamics_cellulose"
 type: software
-version: 0.3.0
-date-released: 2026-08-22
+version: 0.4.0
+date-released: 2026-08-24
 authors:
   - family-names: "Caetano"
     given-names: "André de Araújo"

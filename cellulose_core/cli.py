@@ -64,6 +64,14 @@ def parser() -> argparse.ArgumentParser:
         help="omit PDB CONECT records (not recommended for carbohydrate readers)",
     )
     result.add_argument(
+        "--charmm-gui",
+        action="store_true",
+        help=(
+            "prepare CHARMM-GUI input: omit hydroxyl H coordinates and order "
+            "residues for O4(i)-C1(i+1) recognition"
+        ),
+    )
+    result.add_argument(
         "--oxidation",
         type=float,
         metavar="FRACTION",
@@ -118,7 +126,12 @@ def main() -> None:
     )
     report = validate(structure)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    write_pdb(args.output, structure, conect=not args.no_conect)
+    write_pdb(
+        args.output,
+        structure,
+        conect=not args.no_conect,
+        charmm_gui=args.charmm_gui,
+    )
     print(f"Allomorph: cellulose {structure.allomorph}")
     print(f"Layers: {','.join(map(str, structure.layers))}")
     print(f"Chains: {report.chains}")
@@ -135,4 +148,6 @@ def main() -> None:
         )
     if report.chain_spacing_min is not None:
         print(f"Minimum chain-axis spacing: {report.chain_spacing_min:.3f} A")
+    if args.charmm_gui:
+        print("Output profile: CHARMM-GUI (hydroxyl H coordinates omitted)")
     print(f"Output: {args.output.resolve()}")

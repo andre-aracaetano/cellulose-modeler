@@ -97,6 +97,90 @@ class BuilderTests(unittest.TestCase):
                 self.assertIn(o6, adjacency[c6])
                 self.assertIn(ho6, adjacency[o6])
 
+    def test_charmm_gui_profile_prevents_quinovose_signature(self):
+        structure = build_structure(20, [2, 3, 4, 4, 3, 2])
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "charmm_gui.pdb"
+            write_pdb(path, structure, charmm_gui=True)
+            lines = path.read_text().splitlines()
+            atoms = [line for line in lines if line.startswith("ATOM")]
+
+            self.assertEqual(len(atoms), 6498)
+            names = [line[12:16].strip() for line in atoms]
+            self.assertFalse({"HO1", "HO2", "HO3", "HO4", "HO6", "H63"} & set(names))
+            self.assertEqual(names.count("O6"), 360)
+            self.assertEqual(names.count("H61"), 360)
+            self.assertEqual(names.count("H62"), 360)
+
+            by_key = {
+                (line[21], int(line[22:26]), line[12:16].strip()): line
+                for line in atoms
+            }
+            # Residue 1 is the original high-z end after whole-block reversal.
+            self.assertGreater(float(by_key[("M", 1, "C1")][46:54]), 90.0)
+            self.assertLess(float(by_key[("M", 20, "C1")][46:54]), 10.0)
+
+            serial_key = {
+                int(line[6:11]): (line[21], int(line[22:26]), line[12:16].strip())
+                for line in atoms
+            }
+            edges = set()
+            for line in lines:
+                if line.startswith("CONECT"):
+                    values = [int(line[i:i + 5]) for i in range(6, len(line), 5)]
+                    edges.update(tuple(sorted((values[0], other))) for other in values[1:])
+            key_serial = {value: key for key, value in serial_key.items()}
+            for chain_id in "ABCDEFGHIJKLMNOPQR":
+                for residue_number in range(1, 20):
+                    expected = tuple(sorted((
+                        key_serial[(chain_id, residue_number, "O4")],
+                        key_serial[(chain_id, residue_number + 1, "C1")],
+                    )))
+                    self.assertIn(expected, edges)
+
+    def test_charmm_gui_profile_preserves_oxidized_c6_heavy_atoms(self):
+        structure = build_structure(
+            20,
+            [2, 3, 4, 4, 3, 2],
+            oxidation_degree=0.25,
+            oxidation_scope="surface",
+            oxidation_seed=344,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "tocnf25_charmm_gui.pdb"
+            write_pdb(path, structure, charmm_gui=True)
+            atoms = [
+                line for line in path.read_text().splitlines()
+                if line.startswith("ATOM")
+            ]
+            names = [line[12:16].strip() for line in atoms]
+            self.assertEqual(len(atoms), 6438)
+            self.assertEqual(names.count("O6"), 300)
+            self.assertEqual(names.count("O61"), 60)
+            self.assertEqual(names.count("O62"), 60)
+            self.assertEqual(names.count("H63"), 0)
+            self.assertFalse({"HO1", "HO2", "HO3", "HO4", "HO6", "HO62"} & set(names))
+
+    def test_charmm_gui_profile_retains_explicit_cooh_protonation(self):
+        structure = build_structure(
+            10,
+            [2, 2],
+            oxidation_degree=0.1,
+            oxidation_scope="all",
+            oxidation_protonated=True,
+            oxidation_seed=7,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "protonated_charmm_gui.pdb"
+            write_pdb(path, structure, charmm_gui=True)
+            names = [
+                line[12:16].strip()
+                for line in path.read_text().splitlines()
+                if line.startswith("ATOM")
+            ]
+            self.assertEqual(names.count("HO62"), 4)
+            self.assertFalse({"HO1", "HO2", "HO3", "HO4", "HO6"} & set(names))
+
     def test_validation_rejects_accidental_6_deoxy_residue(self):
         structure = build_structure(2, [1])
         residue = structure.chains[0].residues[1]
