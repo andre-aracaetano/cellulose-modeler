@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use dynamics_cellulose, cite this software and the experimental cellulose I-beta structure below."
 title: "dynamics_cellulose"
 type: software
-version: 0.4.0
-date-released: 2026-08-24
+version: 0.5.0
+date-released: 2026-08-31
 authors:
   - family-names: "Caetano"
     given-names: "André de Araújo"
@@ -26,3 +26,24 @@ references:
   - type: dataset
     title: "Cellulose I-beta crystal structure, COD 4114994"
     url: "https://www.crystallography.net/cod/4114994.html"
+  - type: article
+    title: "Atomistic molecular dynamics simulations on the interaction of TEMPO-oxidized cellulose nanofibrils in water"
+    authors:
+      - family-names: "Paajanen"
+        given-names: "Antti T."
+      - family-names: "Sonavane"
+        given-names: "Yogesh"
+      - family-names: "Ignasiak"
+        given-names: "Dominika"
+      - family-names: "Ketoja"
+        given-names: "Jukka A."
+      - family-names: "Maloney"
+        given-names: "Thaddeus"
+      - family-names: "Paavilainen"
+        given-names: "Sami"
+    journal: "Cellulose"
+    volume: 23
+    start: 3449
+    end: 3462
+    year: 2016
+    doi: "10.1007/s10570-016-1076-x"

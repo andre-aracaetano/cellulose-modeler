@@ -9,3 +9,6 @@ cellulose_core/data/ibeta_reference_dp20.pdb
 
 # Generated structures belong here; keep only the directory placeholder.
 outputs/*.pdb
+
+# Private working manuscript; keep the public scientific rationale in Markdown.
+docs/discussao_oxidacao_tocnf.tex

@@ -64,8 +64,10 @@ def write_pdb(
         state = "protonated COOH" if structure.oxidation_protonated else "deprotonated COO-"
         lines.extend((
             "REMARK  C6 oxidation enabled",
+            f"REMARK  Oxidation eligibility model: {structure.oxidation_model}",
             f"REMARK  Oxidation scope: {structure.oxidation_scope}",
             f"REMARK  Requested oxidation degree: {structure.oxidation_degree:.6f}",
+            f"REMARK  Eligible C6 sites: {structure.oxidation_eligible_sites}",
             f"REMARK  Oxidized C6 sites: {oxidized_count}",
             f"REMARK  Oxidation state: {state}",
             f"REMARK  Random seed: {structure.oxidation_seed}",

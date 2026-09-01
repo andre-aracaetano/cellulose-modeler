@@ -125,18 +125,75 @@ def _oxidize_residue(residue: Residue, protonated: bool) -> None:
     residue.oxidation_protonated = protonated
 
 
+def _paajanen_eligible_residues(chains: list[Chain]) -> list[Residue]:
+    """Select the outward-facing alternating C6 class on each surface chain.
+
+    Paajanen et al. allow one C6 hydroxymethyl group per cellobiose repeat on
+    every surface chain.  Which of the two alternating classes faces solvent
+    depends on the chain's position around the fibril, so residue-number
+    parity cannot be selected globally.  For each boundary chain, this routine
+    compares the mean projection of its C5->C6 vectors onto the local outward
+    transverse direction and retains the better-facing class.
+    """
+    if len(chains) < 2:
+        raise ValueError("the Paajanen oxidation model requires at least two chains")
+    surface = _surface_chains(chains)
+    anchors = [chain.residues[0].atom("C1").position for chain in chains]
+    center = (
+        mean(position[0] for position in anchors),
+        mean(position[1] for position in anchors),
+        0.0,
+    )
+    eligible: list[Residue] = []
+    for chain in surface:
+        anchor = chain.residues[0].atom("C1").position
+        outward_vector = (anchor[0] - center[0], anchor[1] - center[1], 0.0)
+        outward = normalize(outward_vector)
+
+        def class_score(parity: int) -> float:
+            projections = []
+            for residue in chain.residues:
+                if residue.number % 2 != parity:
+                    continue
+                c5_to_c6 = normalize(sub(residue.atom("C6").position, residue.atom("C5").position))
+                projections.append(dot(c5_to_c6, outward))
+            return mean(projections) if projections else float("-inf")
+
+        # A tie is resolved deterministically in favor of the class beginning
+        # at residue 1. Odd DP may give the selected classes unequal counts by
+        # one, which is the unavoidable consequence of a finite chain end.
+        selected_parity = 1 if class_score(1) >= class_score(0) else 0
+        eligible.extend(
+            residue for residue in chain.residues
+            if residue.number % 2 == selected_parity
+        )
+    return eligible
+
+
 def _apply_oxidation(
-    chains: list[Chain], degree: float, scope: str, protonated: bool, seed: int | None
-) -> None:
+    chains: list[Chain],
+    degree: float,
+    scope: str,
+    protonated: bool,
+    seed: int | None,
+    model: str,
+) -> int:
     if not 0.1 <= degree <= 1.0:
         raise ValueError("oxidation_degree must be between 0.1 and 1.0")
     if scope not in {"surface", "all"}:
         raise ValueError("oxidation_scope must be 'surface' or 'all'")
+    if model not in {"random-surface", "paajanen"}:
+        raise ValueError("oxidation_model must be 'random-surface' or 'paajanen'")
+    if model == "paajanen" and scope != "surface":
+        raise ValueError("the Paajanen oxidation model requires oxidation_scope='surface'")
     eligible_chains = _surface_chains(chains) if scope == "surface" else chains
     eligible = [residue for chain in eligible_chains for residue in chain.residues]
+    if model == "paajanen":
+        eligible = _paajanen_eligible_residues(chains)
     count = min(len(eligible), math.floor(len(eligible) * degree + 0.5))
     for residue in random.Random(seed).sample(eligible, count):
         _oxidize_residue(residue, protonated)
+    return len(eligible)
 
 
 def _hydroxyl_position(
@@ -219,6 +276,7 @@ def build_structure(
     oxidation_scope: str = "surface",
     oxidation_protonated: bool = False,
     oxidation_seed: int | None = None,
+    oxidation_model: str = "random-surface",
 ) -> Structure:
     if glucose_units < 1:
         raise ValueError("glucose_units must be at least 1")
@@ -230,9 +288,11 @@ def build_structure(
             _lattice_sites(layers), start=1
         )
     ]
+    eligible_sites = 0
     if oxidation_degree:
-        _apply_oxidation(
-            chains, oxidation_degree, oxidation_scope, oxidation_protonated, oxidation_seed
+        eligible_sites = _apply_oxidation(
+            chains, oxidation_degree, oxidation_scope, oxidation_protonated,
+            oxidation_seed, oxidation_model,
         )
     _add_missing_hydroxyl_hydrogens(chains)
     _center_transverse(chains)
@@ -240,4 +300,5 @@ def build_structure(
         "I-beta", list(layers), glucose_units, chains,
         oxidation_scope if oxidation_degree else None,
         oxidation_degree, oxidation_protonated, oxidation_seed,
+        oxidation_model, eligible_sites,
     )

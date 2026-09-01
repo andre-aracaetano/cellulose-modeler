@@ -84,6 +84,15 @@ def parser() -> argparse.ArgumentParser:
         help="oxidize boundary chains only or all chains (default: surface)",
     )
     result.add_argument(
+        "--oxidation-model",
+        choices=("random-surface", "paajanen"),
+        default="random-surface",
+        help=(
+            "eligible-site model: all C6 in the requested scope, or alternating "
+            "C6 sites on surface chains following Paajanen et al. (default: random-surface)"
+        ),
+    )
+    result.add_argument(
         "--oxidation-state",
         choices=("deprotonated", "protonated"),
         default="deprotonated",
@@ -115,6 +124,8 @@ def main() -> None:
         raise SystemExit("error: --glucose/--dp must be at least 1")
     if args.oxidation is not None and not 0.1 <= args.oxidation <= 1.0:
         raise SystemExit("error: --oxidation must be between 0.1 and 1.0")
+    if args.oxidation_model == "paajanen" and args.oxidation_scope != "surface":
+        raise SystemExit("error: --oxidation-model paajanen requires --oxidation-scope surface")
     layers = args.layers if args.layers is not None else PRESETS[args.preset or "single"]
     structure = build_structure(
         args.glucose,
@@ -123,6 +134,7 @@ def main() -> None:
         oxidation_scope=args.oxidation_scope,
         oxidation_protonated=args.oxidation_state == "protonated",
         oxidation_seed=args.seed,
+        oxidation_model=args.oxidation_model,
     )
     report = validate(structure)
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -139,6 +151,8 @@ def main() -> None:
     print(f"Residues: {report.residues}")
     print(f"Atoms: {report.atoms}")
     if report.oxidized_sites:
+        print(f"Oxidation model: {structure.oxidation_model}")
+        print(f"Eligible C6 sites: {structure.oxidation_eligible_sites}")
         print(f"Oxidized C6 sites: {report.oxidized_sites}")
         print(f"Nominal net charge: {report.net_charge:+d} e")
     if report.glycosidic_min is not None:

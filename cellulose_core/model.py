@@ -42,3 +42,5 @@ class Structure:
     oxidation_degree: float = 0.0
     oxidation_protonated: bool = False
     oxidation_seed: int | None = None
+    oxidation_model: str = "random-surface"
+    oxidation_eligible_sites: int = 0

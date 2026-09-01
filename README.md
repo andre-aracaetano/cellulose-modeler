@@ -79,6 +79,16 @@ python builder.py --dp 20 --preset 18 --oxidation 0.25 \
   -o outputs/cnf_18x20_ox25_surface_deprotonated.pdb
 ```
 
+Use the alternating surface-site model of Paajanen *et al.* and oxidize 25%
+of its eligible C6 sites:
+
+```bash
+python builder.py --dp 20 --preset 18 --oxidation 0.25 \
+  --oxidation-scope surface --oxidation-model paajanen \
+  --oxidation-state deprotonated --seed 344 --charmm-gui \
+  -o outputs/tocnf_18x20_paajanen_ox25_seed344_charmm_gui.pdb
+```
+
 For a PDB that will be uploaded to CHARMM-GUI, add `--charmm-gui`:
 
 ```bash
@@ -92,10 +102,12 @@ python builder.py --dp 20 --preset 18 --oxidation 0.25 \
 
 Oxidation is disabled unless `--oxidation` is supplied. Surface chains are the
 chains in the top and bottom rows plus both boundary chains of every intermediate
-row. The requested fraction is applied to all C6 sites eligible under the chosen
-scope, rounded to the nearest whole site. Selection is random; use `--seed` to
-make it reproducible. Deprotonated `COO-` is the default oxidation state, while
-`--oxidation-state protonated` generates neutral `COOH`.
+row. With the default `random-surface` model, the requested fraction is applied
+to every C6 in the chosen scope. With `paajanen`, it is applied only to the
+alternating eligible sites described below. Counts are rounded to the nearest
+whole site. Selection is random; use `--seed` to make it reproducible.
+Deprotonated `COO-` is the default oxidation state, while `--oxidation-state
+protonated` generates neutral `COOH`.
 
 Available presets are `single`, `18` (`2,3,4,4,3,2`) and `36`
 (`3,4,5,6,6,5,4,3`). Presets are conveniences only; `--layers` accepts any
@@ -118,6 +130,7 @@ reference. All currently available options are listed below.
 | `--charmm-gui` | Preserve heavy atoms and C-H atoms, omit hydroxyl-H coordinates for topology-based reconstruction, and order residues for `O4(i)-C1(i+1)` recognition. | Disabled |
 | `--oxidation FRACTION` | Enable random C6 oxidation at a degree from `0.1` to `1.0`. | Disabled |
 | `--oxidation-scope surface\|all` | Restrict eligible C6 sites to boundary chains or include every chain. | `surface` |
+| `--oxidation-model random-surface\|paajanen` | Use every C6 in the selected scope, or alternating C6 sites on surface chains. | `random-surface` |
 | `--oxidation-state deprotonated\|protonated` | Generate `COO-` or neutral `COOH`. | `deprotonated` |
 | `--seed N` | Fix random selection for reproducible structures. | Random |
 | `--interactive`, `-i` | Ask interactively for DP, layers, and output path instead of requiring those values on the command line. A blank layers answer selects one chain. | Disabled |
@@ -242,9 +255,10 @@ responsibility of the subsequent topology/PSF preparation step.
 
 For `surface` scope, eligible chains are those in the top and bottom rows plus
 the two boundary chains in every intermediate row. For the 18-chain profile,
-this selects 12 surface chains and leaves 6 interior chains unchanged. The
-oxidation degree is calculated over all glucose residues in the eligible
-chains. The nearest whole number of sites is sampled without replacement.
+this selects 12 surface chains and leaves 6 interior chains unchanged. With
+the default `random-surface` model, oxidation degree is calculated over
+all glucose residues in the eligible chains. The nearest whole number of sites
+is sampled without replacement. The `paajanen` denominator is described below.
 
 The generated coordinates are an initial chemical geometry based on the
 CHARMM-GUI reference supplied during development: approximately 1.26 A C6-O
@@ -252,9 +266,47 @@ bonds and trigonal-planar carboxyl geometry. As with hydroxyl orientations,
 oxidized structures should undergo normal force-field assignment,
 minimization, and equilibration before production dynamics.
 
+### Paajanen alternating surface-site model
+
+The optional `--oxidation-model paajanen` mode follows the eligibility model
+reported by A. Paajanen, Y. Sonavane, D. Ignasiak, J. A. Ketoja, T. Maloney,
+and S. Paavilainen, “Atomistic molecular dynamics simulations on the
+interaction of TEMPO-oxidized cellulose nanofibrils in water,” *Cellulose* 23
+(2016), 3449–3462, <https://doi.org/10.1007/s10570-016-1076-x>.
+
+That study randomly substituted carboxylates among every second C6
+hydroxymethyl group of each surface chain. This is consistent with the
+alternating glucosyl environments of the cellulose Iβ 2_1 helical repeat and
+with experimental reports of alternating glucose/glucuronate structures on
+oxidized cellulose-I microfibril surfaces. Because the solvent-facing class is
+not the same residue-number parity on opposite sides of a fibril,
+`dynamics_cellulose` chooses it separately for each surface chain. It compares
+the mean projection of the two alternating classes' C5→C6 vectors onto that
+chain's outward transverse direction and retains the class pointing farther
+out of the crystallite. No SASA or reaction-energy calculation is implied.
+This outward-facing rule is a documented geometric adaptation made by
+`dynamics_cellulose`; it is not presented as an atom-selection algorithm
+published by Paajanen *et al.*
+
+In this mode, `--oxidation FRACTION` uses the alternating sites—not every C6
+on a surface chain—as its denominator. For the 18-chain, DP20 profile, 12
+surface chains each contribute 10 alternating sites, giving 120 eligible C6
+sites. Thus `--oxidation 0.25` creates 30 carboxylates (25% of 120, or 8.33%
+of all 360 anhydroglucose units). Different `--seed` values create independent
+spatial distributions at the same functionalization level, as required for
+studying the configuration sensitivity emphasized by Paajanen *et al.* The
+mode is defined only for `--oxidation-scope surface`.
+
+For the same profile, 25% oxidation relative to all 360 anhydroglucose units
+means 90 carboxylates. Because 90 is 75% of the 120 Paajanen-eligible sites,
+generate that model with `--oxidation 0.75`, not `--oxidation 0.25`.
+
+See [`docs/PAAJANEN_SURFACE_OXIDATION.md`](docs/PAAJANEN_SURFACE_OXIDATION.md)
+for the scientific rationale, degree definitions, validation and limitations.
+
 ## Current scope and limits
 
-Version 0.4 implements finite cellulose Iβ, optional C6 oxidation, and the
+Version 0.5 implements finite cellulose Iβ, optional C6 oxidation, and the
 validated CHARMM-GUI input profile. Other allomorphs require their own
 experimental datasets and symmetry implementations; they must not be
 approximated by changing Iβ lattice dimensions.
@@ -272,7 +324,9 @@ python -m unittest discover -s tests -v
 The checks include odd-DP chains, the 18-chain profile, fixed-column PDB
 formatting, explicit connectivity, intact C6 chemistry, the historical CARM
 regression, CHARMM-directed residue ordering, hydroxyl-H omission, and 25%
-C6-oxidized output.
+C6-oxidized output. They also verify the Paajanen eligible-site count,
+chain-specific outward alternating classes and rejection of incompatible
+`all` scope.
 
 The full investigation and numerical validation are recorded in
 [`docs/CHARMM_GUI_RECOGNITION_REPORT.md`](docs/CHARMM_GUI_RECOGNITION_REPORT.md).

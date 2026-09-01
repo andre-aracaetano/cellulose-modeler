@@ -5,7 +5,7 @@ import subprocess
 import sys
 from collections import defaultdict
 
-from cellulose_core.builder import build_structure
+from cellulose_core.builder import build_structure, _paajanen_eligible_residues
 from cellulose_core.geometry import distance
 from cellulose_core.pdbio import write_pdb
 from cellulose_core.reference import REFERENCE
@@ -265,6 +265,52 @@ class BuilderTests(unittest.TestCase):
     def test_oxidation_degree_validation(self):
         with self.assertRaises(ValueError):
             build_structure(2, [1], oxidation_degree=0.09)
+
+    def test_paajanen_18_chain_25_percent_uses_alternating_surface_sites(self):
+        structure = build_structure(
+            20,
+            [2, 3, 4, 4, 3, 2],
+            oxidation_degree=0.25,
+            oxidation_scope="surface",
+            oxidation_seed=344,
+            oxidation_model="paajanen",
+        )
+        report = validate(structure)
+        oxidized = [
+            (chain.number, residue.number)
+            for chain in structure.chains
+            for residue in chain.residues
+            if residue.oxidized
+        ]
+        self.assertEqual(structure.oxidation_eligible_sites, 120)
+        self.assertEqual(report.oxidized_sites, 30)
+        surface_chain_numbers = {1, 2, 3, 5, 6, 9, 10, 13, 14, 16, 17, 18}
+        self.assertTrue(all(chain_number in surface_chain_numbers for chain_number, _ in oxidized))
+
+    def test_paajanen_selects_outward_alternating_class_per_surface_chain(self):
+        structure = build_structure(20, [2, 3, 4, 4, 3, 2])
+        eligible_ids = {id(residue) for residue in _paajanen_eligible_residues(structure.chains)}
+        expected_parity = {
+            1: 0, 2: 1, 3: 0, 5: 1, 6: 0, 9: 1,
+            10: 0, 13: 1, 14: 0, 16: 1, 17: 0, 18: 1,
+        }
+        for chain in structure.chains:
+            selected = [r for r in chain.residues if id(r) in eligible_ids]
+            if chain.number in expected_parity:
+                self.assertEqual(len(selected), 10)
+                self.assertEqual(
+                    {residue.number % 2 for residue in selected},
+                    {expected_parity[chain.number]},
+                )
+            else:
+                self.assertFalse(selected)
+
+    def test_paajanen_requires_surface_scope(self):
+        with self.assertRaisesRegex(ValueError, "requires oxidation_scope='surface'"):
+            build_structure(
+                20, [2, 3, 4, 4, 3, 2], oxidation_degree=0.25,
+                oxidation_scope="all", oxidation_model="paajanen",
+            )
 
     def test_root_builder_creates_default_output_directory(self):
         root_builder = Path(__file__).resolve().parents[1] / "builder.py"
