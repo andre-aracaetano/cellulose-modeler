@@ -6,7 +6,7 @@ from statistics import mean
 
 from .geometry import add, cross, dot, norm, normalize, scale, sub
 from .model import Atom, Chain, Residue, Structure, Vec3
-from .reference import REFERENCE
+from .reference import CrystallographicReference, get_reference
 
 
 def _row_base(row: int) -> tuple[int, int, int]:
@@ -16,8 +16,19 @@ def _row_base(row: int) -> tuple[int, int, int]:
     return 1, half, -half - 1
 
 
-def _lattice_sites(layers: list[int]) -> list[tuple[int, int, int, int, int]]:
-    vector_b = REFERENCE.vector_b
+def _lattice_sites(
+    reference: CrystallographicReference, layers: list[int]
+) -> list[tuple[int, int, int, tuple[int, int, int]]]:
+    if reference.chain_types == 1:
+        sites = []
+        for row, count in enumerate(layers):
+            first_column = -(count // 2)
+            for offset in range(count):
+                column = first_column + offset
+                sites.append((row, column, 0, reference.site_translation(row, column)))
+        return sites
+
+    vector_b = reference.vector_b
     b_squared = dot(vector_b, vector_b)
     bases: list[tuple[int, int, int, Vec3]] = []
     ideal_centers = []
@@ -28,7 +39,7 @@ def _lattice_sites(layers: list[int]) -> list[tuple[int, int, int, int, int]]:
             cell_b + 0.5 * chain_type,
             0.0,
         )
-        base = REFERENCE.fractional_to_cartesian(fractional_center)
+        base = reference.fractional_to_cartesian(fractional_center)
         along_b = dot(base, vector_b) / b_squared
         ideal_centers.append(along_b + (count - 1) / 2.0)
         bases.append((chain_type, cell_a, cell_b, base))
@@ -40,26 +51,35 @@ def _lattice_sites(layers: list[int]) -> list[tuple[int, int, int, int, int]]:
         first_column = round(target_center - along_b - (count - 1) / 2.0)
         for offset in range(count):
             column = first_column + offset
-            sites.append((row, column, chain_type, cell_a, cell_b + column))
+            sites.append(
+                (row, column, chain_type, (cell_a, cell_b + column, 0))
+            )
     return sites
 
 
 def _build_chain(
+    reference: CrystallographicReference,
     glucose_units: int,
     chain_type: int,
-    cell_a: int,
-    cell_b: int,
+    site_translation: tuple[int, int, int],
     number: int,
     row: int,
     column: int,
 ) -> Chain:
     residues = [
-        Residue(index, REFERENCE.residue_atoms(chain_type, index, cell_a, cell_b))
+        Residue(
+            index,
+            reference.residue_atoms(
+                chain_type, index, site_translation, glucose_units
+            ),
+        )
         for index in range(1, glucose_units + 1)
     ]
     next_o4 = next(
         atom
-        for atom in REFERENCE.residue_atoms(chain_type, glucose_units + 1, cell_a, cell_b)
+        for atom in reference.residue_atoms(
+            chain_type, glucose_units + 1, site_translation, glucose_units
+        )
         if atom.name == "O4"
     )
     residues[-1].atoms.append(Atom("O1", "O", next_o4.position))
@@ -277,15 +297,24 @@ def build_structure(
     oxidation_protonated: bool = False,
     oxidation_seed: int | None = None,
     oxidation_model: str = "random-surface",
+    allomorph: str = "ibeta",
 ) -> Structure:
     if glucose_units < 1:
         raise ValueError("glucose_units must be at least 1")
     if not layers or any(count < 1 for count in layers):
         raise ValueError("layers must contain positive chain counts")
+    reference = get_reference(allomorph)
+    if oxidation_degree and allomorph != "ibeta":
+        raise ValueError(
+            "C6 oxidation is currently validated only for cellulose I-beta"
+        )
     chains = [
-        _build_chain(glucose_units, chain_type, cell_a, cell_b, index, row, column)
-        for index, (row, column, chain_type, cell_a, cell_b) in enumerate(
-            _lattice_sites(layers), start=1
+        _build_chain(
+            reference, glucose_units, chain_type, site_translation,
+            index, row, column,
+        )
+        for index, (row, column, chain_type, site_translation) in enumerate(
+            _lattice_sites(reference, layers), start=1
         )
     ]
     eligible_sites = 0
@@ -297,8 +326,8 @@ def build_structure(
     _add_missing_hydroxyl_hydrogens(chains)
     _center_transverse(chains)
     return Structure(
-        "I-beta", list(layers), glucose_units, chains,
+        reference.name, list(layers), glucose_units, chains,
         oxidation_scope if oxidation_degree else None,
         oxidation_degree, oxidation_protonated, oxidation_seed,
-        oxidation_model, eligible_sites,
+        oxidation_model, eligible_sites, reference.key,
     )

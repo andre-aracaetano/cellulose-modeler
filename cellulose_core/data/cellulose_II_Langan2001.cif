@@ -1,0 +1,67 @@
+# Crystallographic model transcribed from the atomic coordinates reported by
+# Langan, Nishiyama, and Chanzy, Biomacromolecules 2001, 2, 410-416.
+# DOI: 10.1021/bm005612q
+# This project does not use coordinates from Cellulose Builder.
+data_cellulose_II_Langan2001
+_publ_section_title 'X-ray Structure of Mercerized Cellulose II at 1 Angstrom Resolution'
+_journal_name_full 'Biomacromolecules'
+_journal_year 2001
+_journal_volume 2
+_journal_page_first 410
+_journal_page_last 416
+_journal_paper_doi 10.1021/bm005612q
+_symmetry_cell_setting monoclinic
+_symmetry_space_group_name_H-M 'P 1 1 21'
+_cell_length_a 8.10
+_cell_length_b 9.03
+_cell_length_c 10.31
+_cell_angle_alpha 90.0
+_cell_angle_beta 90.0
+_cell_angle_gamma 117.10
+loop_
+_symmetry_equiv_pos_as_xyz
+'x, y, z'
+'-x, -y, z+1/2'
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_auth_asym_id
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+C1 C O -0.043 0.007 0.381
+H1 H O -0.1257 -0.1115 0.3924
+C2 C O -0.125 0.086 0.286
+H2 H O -0.0411 0.2049 0.2764
+C3 C O -0.151 -0.003 0.156
+H3 H O -0.2396 -0.1205 0.1677
+C4 C O 0.034 0.008 0.112
+H4 H O 0.1198 0.1243 0.0929
+C5 C O 0.118 -0.057 0.216
+H5 H O 0.0297 -0.1731 0.2320
+C6 C O 0.298 -0.053 0.183
+H61 H O 0.2935 -0.0928 0.0947
+H62 H O 0.3960 0.0603 0.1874
+O4 O O 0.011 -0.091 -0.001
+O2 O O -0.299 0.062 0.334
+O3 O O -0.224 0.069 0.066
+O5 O O 0.133 0.034 0.333
+O6 O O 0.337 -0.155 0.270
+C1 C C 0.468 0.522 -0.150
+H1 H C 0.5652 0.6374 -0.1577
+C2 C C 0.318 0.506 -0.054
+H2 H C 0.2243 0.3886 -0.0506
+C3 C C 0.398 0.559 0.082
+H3 H C 0.4800 0.6792 0.0821
+C4 C C 0.509 0.468 0.119
+H4 H C 0.4232 0.3516 0.1370
+C5 C C 0.640 0.474 0.011
+H5 H C 0.7246 0.5920 -0.0036
+C6 C C 0.757 0.392 0.037
+H61 H C 0.8256 0.4356 0.1166
+H62 H C 0.6794 0.2739 0.0479
+O4 O C 0.621 0.539 0.232
+O2 O C 0.230 0.603 -0.092
+O3 O C 0.250 0.523 0.170
+O5 O C 0.541 0.413 -0.108
+O6 O C 0.886 0.418 -0.067

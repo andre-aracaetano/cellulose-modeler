@@ -87,11 +87,13 @@ def validate(structure: Structure) -> Validation:
         raise ValueError("invalid glycosidic C1-O4 distance detected")
     anchors = [chain.residues[0].atom("C1").position for chain in structure.chains]
     spacings = [
-        distance(first, second)
+        distance((first[0], first[1], 0.0), (second[0], second[1], 0.0))
         for index, first in enumerate(anchors)
         for second in anchors[index + 1 :]
     ]
-    if spacings and min(spacings) < 5.0:
+    # Cellulose III_I has a legitimate crystallographic a spacing of 4.45 A.
+    # A 4.0 A guard still detects duplicate/overlapping chain lattice sites.
+    if spacings and min(spacings) < 4.0:
         raise ValueError("two chains occupy overlapping or invalid lattice sites")
     return Validation(
         chains=len(structure.chains),

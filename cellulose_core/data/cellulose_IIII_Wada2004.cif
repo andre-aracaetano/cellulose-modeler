@@ -1,0 +1,49 @@
+# Crystallographic model transcribed from the atomic coordinates reported by
+# Wada, Chanzy, Nishiyama, and Langan, Macromolecules 2004, 37, 8548-8555.
+# DOI: 10.1021/ma0485585
+# This project does not use coordinates from Cellulose Builder.
+data_cellulose_IIII_Wada2004
+_publ_section_title 'Cellulose III_I Crystal Structure and Hydrogen Bonding by Synchrotron X-ray and Neutron Fiber Diffraction'
+_journal_name_full 'Macromolecules'
+_journal_year 2004
+_journal_volume 37
+_journal_page_first 8548
+_journal_page_last 8555
+_journal_paper_doi 10.1021/ma0485585
+_symmetry_cell_setting monoclinic
+_symmetry_space_group_name_H-M 'P 1 1 21'
+_cell_length_a 4.450
+_cell_length_b 7.850
+_cell_length_c 10.310
+_cell_angle_alpha 90.0
+_cell_angle_beta 90.0
+_cell_angle_gamma 105.10
+loop_
+_symmetry_equiv_pos_as_xyz
+'x, y, z'
+'-x, -y, z+1/2'
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_auth_asym_id
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+C1 C A 0.050961 0.057262 0.380527
+C2 C A 0.191389 0.196135 0.287129
+C3 C A 0.047193 0.160362 0.153425
+C4 C A 0.009263 -0.031267 0.112801
+C5 C A -0.148745 -0.157932 0.218384
+C6 C A -0.176129 -0.348168 0.188882
+O2 O A 0.181636 0.366971 0.331722
+O3 O A 0.242720 0.281823 0.066537
+O4 O A -0.191038 -0.076143 0.000711
+O5 O A 0.038639 -0.114787 0.333349
+O6 O A -0.238242 -0.451795 0.303957
+H1 H A -0.164524 0.062564 0.393673
+H2 H A 0.411219 0.197152 0.278760
+H3 H A -0.158495 0.183912 0.154995
+H4 H A 0.213656 -0.050262 0.093348
+H5 H A -0.356184 -0.141547 0.235149
+H61 H A -0.342927 -0.390800 0.126975
+H62 H A 0.016046 -0.359921 0.150091

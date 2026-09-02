@@ -44,3 +44,4 @@ class Structure:
     oxidation_seed: int | None = None
     oxidation_model: str = "random-surface"
     oxidation_eligible_sites: int = 0
+    reference_key: str = "ibeta"

@@ -8,7 +8,7 @@ from collections import defaultdict
 from cellulose_core.builder import build_structure, _paajanen_eligible_residues
 from cellulose_core.geometry import distance
 from cellulose_core.pdbio import write_pdb
-from cellulose_core.reference import REFERENCE
+from cellulose_core.reference import REFERENCE, REFERENCES
 from cellulose_core.validation import validate
 
 
@@ -25,6 +25,65 @@ class BuilderTests(unittest.TestCase):
         self.assertEqual(report.chains, 1)
         self.assertEqual(report.residues, 7)
         self.assertAlmostEqual(report.glycosidic_min, 1.41502, places=4)
+
+    def test_allomorph_reference_cells_and_chain_directions(self):
+        expected = {
+            "ialpha": ((10.400, 6.717, 5.962, 80.37, 118.08, 114.80), [(1, 0, 0)]),
+            "ibeta": ((7.784, 8.201, 10.380, 90.0, 90.0, 96.55), [(0, 0, 1), (0, 0, 1)]),
+            "ii": ((8.10, 9.03, 10.31, 90.0, 90.0, 117.10), [(0, 0, 1), (0, 0, -1)]),
+            "iii-i": ((4.450, 7.850, 10.310, 90.0, 90.0, 105.10), [(0, 0, 1)]),
+        }
+        for key, (cell, cycles) in expected.items():
+            reference = REFERENCES[key]
+            self.assertEqual(reference.cycle_translations, cycles)
+            for observed, target in zip(
+                (reference.a, reference.b, reference.c, reference.alpha,
+                 reference.beta, reference.gamma), cell
+            ):
+                self.assertAlmostEqual(observed, target, places=3)
+
+    def test_all_allomorphs_build_valid_18_chain_dp20_structures(self):
+        expected_links = {
+            "ialpha": (1.402, 1.406),
+            "ibeta": (1.415, 1.429),
+            "ii": (1.393, 1.395),
+            "iii-i": (1.377, 1.379),
+        }
+        for key, (lower, upper) in expected_links.items():
+            structure = build_structure(20, [2, 3, 4, 4, 3, 2], allomorph=key)
+            report = validate(structure)
+            self.assertEqual(report.chains, 18)
+            self.assertEqual(report.residues, 360)
+            self.assertEqual(report.atoms, 7614)
+            self.assertGreaterEqual(report.glycosidic_min, lower)
+            self.assertLessEqual(report.glycosidic_max, upper)
+
+    def test_cellulose_ii_contains_antiparallel_chains(self):
+        structure = build_structure(20, [1, 1], allomorph="ii")
+        directions = []
+        for chain in structure.chains:
+            directions.append(
+                chain.residues[-1].atom("C1").position[2]
+                - chain.residues[0].atom("C1").position[2]
+            )
+        self.assertGreater(directions[0], 0.0)
+        self.assertLess(directions[1], 0.0)
+
+    def test_non_ibeta_oxidation_is_rejected_until_validated(self):
+        for key in ("ialpha", "ii", "iii-i"):
+            with self.assertRaisesRegex(ValueError, "validated only for cellulose I-beta"):
+                build_structure(20, [1], allomorph=key, oxidation_degree=0.25)
+
+    def test_cli_rejects_unvalidated_charmm_gui_allomorphs(self):
+        for allomorph in ("ii", "iii-i"):
+            result = subprocess.run(
+                [sys.executable, "builder.py", "--allomorph", allomorph,
+                 "--charmm-gui"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("does not have a validated CHARMM-GUI", result.stderr)
 
     def test_eighteen_chain_layout(self):
         structure = build_structure(20, [2, 3, 4, 4, 3, 2])

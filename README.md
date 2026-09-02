@@ -1,12 +1,14 @@
 # Dynamics Cellulose Maker
 
 `dynamics_cellulose` is a dependency-free Python generator for finite cellulose
-Iβ chains and crystallites with arbitrary degrees of polymerization and
-transverse row profiles. The user-facing launcher is `builder.py`; reusable
+Iα, Iβ, II, and III_I chains and crystallites with arbitrary degrees of
+polymerization and transverse row profiles. The user-facing launcher is `builder.py`; reusable
 implementation modules live in `cellulose_core/`, and generated structures go
 to `outputs/` by default.
 
-Version 0.4 adds a validated `--charmm-gui` output profile. It prevents an
+Version 0.6 adds experimental Iα, II, and III_I references and a general
+allomorph-aware crystal engine. Version 0.4 added the validated `--charmm-gui`
+output profile. It prevents an
 observed carbohydrate-recognition ambiguity without changing the cellulose
 heavy-atom structure. Version 0.3 introduced optional, reproducible C6
 oxidation to protonated carboxylic acid (`COOH`) or deprotonated carboxylate
@@ -14,28 +16,32 @@ oxidation to protonated carboxylic acid (`COOH`) or deprotonated carboxylate
 
 ## Scientific basis and provenance
 
-The program constructs cellulose Iβ directly from the experimental fractional
-coordinates deposited as [Crystallography Open Database entry
-4114994](https://www.crystallography.net/cod/4114994.html). The bundled CIF
-declares its contents to be in the public domain. Generation never reads
-coordinates produced by Cellulose Builder or CHARMM-GUI; legacy PDBs retained
-under `examples/` serve only as output-comparison fixtures.
+The program constructs every allomorph from an independently bundled
+experimental crystallographic reference. Iα and Iβ use the public-domain COD
+deposits 4114383 and 4114994. Cellulose II and III_I use minimal CIFs transcribed
+from their primary high-resolution crystallographic publications. Generation
+never reads coordinates produced by Cellulose Builder or CHARMM-GUI.
 
-Experimental source:
+Experimental sources:
 
-> Yoshiharu Nishiyama, Paul Langan, and Henri Chanzy. “Crystal Structure and
-> Hydrogen-Bonding System in Cellulose Iβ from Synchrotron X-ray and Neutron
-> Fiber Diffraction.” *Journal of the American Chemical Society* 124 (2002),
-> 9074–9082. <https://doi.org/10.1021/ja0257319>.
+- **Iα:** Nishiyama, Sugiyama, Chanzy, and Langan, *JACS* 125 (2003),
+  14300–14306. <https://doi.org/10.1021/ja037055w>; COD 4114383.
+- **Iβ:** Nishiyama, Langan, and Chanzy, *JACS* 124 (2002), 9074–9082.
+  <https://doi.org/10.1021/ja0257319>; COD 4114994.
+- **II:** Langan, Nishiyama, and Chanzy, *Biomacromolecules* 2 (2001),
+  410–416. <https://doi.org/10.1021/bm005612q>.
+- **III_I:** Wada, Chanzy, Nishiyama, and Langan, *Macromolecules* 37 (2004),
+  8548–8555. <https://doi.org/10.1021/ma0485585>.
 
-The implementation independently parses the deposited CIF, applies its
-`P 1 1 21` symmetry, converts fractional coordinates through the experimental
-unit cell, repeats the crystallographic motif to the requested DP, places the
-two independent chain types on discrete Iβ sites, and writes the selected row
-profile as PDB.
+The implementation parses the selected CIF, applies `P1` or `P2_1` symmetry,
+uses a general triclinic cell matrix, repeats the crystallographic motif to the
+requested DP, and writes the selected row profile as PDB. It preserves the
+parallel packing of Iα, Iβ, and III_I and the antiparallel origin/center chains
+of cellulose II.
 
 See [the detailed data provenance](cellulose_core/data/PROVENANCE.md) and
-[`CITATION.cff`](CITATION.cff).
+[`CITATION.cff`](CITATION.cff). The geometry and external validation protocol
+are recorded in [`docs/ALLOMORPH_VALIDATION.md`](docs/ALLOMORPH_VALIDATION.md).
 
 ## Quick start
 
@@ -43,6 +49,17 @@ Download the project, open a terminal in its root directory, and run:
 
 ```bash
 python builder.py --dp 20 --preset 18
+```
+
+Select another experimental allomorph with `--allomorph`:
+
+```bash
+python builder.py --allomorph ialpha --dp 20 --preset 18 --charmm-gui \
+  -o outputs/cellulose_ialpha_18x20_charmm_gui.pdb
+python builder.py --allomorph ii --dp 20 --preset 18 \
+  -o outputs/cellulose_ii_18x20.pdb
+python builder.py --allomorph iii-i --dp 20 --preset 18 \
+  -o outputs/cellulose_iii_i_18x20.pdb
 ```
 
 The resulting file is written to `outputs/cellulose.pdb`. The directory is
@@ -120,6 +137,7 @@ reference. All currently available options are listed below.
 
 | Option | Meaning | Default |
 | --- | --- | --- |
+| `--allomorph ialpha\|ibeta\|ii\|iii-i` | Select the experimental cellulose crystal form. | `ibeta` |
 | `--dp N`, `--glucose N` | Degree of polymerization: the number of glucose units placed in **each** cellulose chain. `N` must be a positive integer. | `20` |
 | `--layers N,N,...` | Custom transverse crystal geometry. Each integer is the number of parallel chains in one row, ordered from top to bottom. For example, `2,3,4,4,3,2` creates 6 rows and 18 chains. All values must be positive. | Not set |
 | `--preset single` | Build one isolated cellulose chain. | Used when neither `--preset` nor `--layers` is supplied |
@@ -152,6 +170,17 @@ The readers identify the glucose rings, β(1→4) connectivity, chain boundaries
 and supported C6 modifications. Structures processed this way have produced
 CHARMM-formatted PDB and PSF files and have been used successfully in short
 molecular-dynamics tests.
+
+This validated statement currently applies to Iβ (including the supported
+Paajanen oxidation workflow) and to non-oxidized Iα. Cellulose II and III_I
+remain available as standalone crystallographic PDBs, but `--charmm-gui` is
+rejected for both because no validated Glycan Reader workflow is available.
+For cellulose II specifically, Glycan Reader 3.7 repeatedly detached the
+terminal glucose of one chain in the tested 18-chain, DP20 antiparallel fibril
+as `HETA/BGL`. Selecting that entry
+would produce an isolated ligand rather than the required β(1→4)-linked chain.
+This is an interoperability limitation, not evidence that the cellulose-II or
+III_I coordinates or bond graphs are chemically invalid.
 
 The validated workflow for molecular dynamics is:
 
@@ -306,10 +335,14 @@ for the scientific rationale, degree definitions, validation and limitations.
 
 ## Current scope and limits
 
-Version 0.5 implements finite cellulose Iβ, optional C6 oxidation, and the
-validated CHARMM-GUI input profile. Other allomorphs require their own
-experimental datasets and symmetry implementations; they must not be
-approximated by changing Iβ lattice dimensions.
+Version 0.6 implements experimental Iα, Iβ, II, and III_I structures with
+locally tested crystallographic geometry and PDB connectivity. The CHARMM-GUI
+profile is supported only for Iα and Iβ; II and III_I remain standalone PDB
+outputs and are not advertised as Glycan Reader compatible.
+
+C6 oxidation is currently restricted to Iβ. In particular, the Paajanen model
+is not transferred automatically to other allomorphs because their C6
+orientations, exposed faces, and, for cellulose II, chain directions differ.
 
 Classic PDB supports at most 62 distinct one-character chain IDs, 99,999 atoms,
 and coordinates below 10,000 Å in the fields used here. A future mmCIF writer

@@ -28,7 +28,13 @@ def parse_layers(text: str) -> list[int]:
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
         prog="dynamics-cellulose",
-        description="Generate cellulose I-beta chains and configurable crystallites as PDB.",
+        description="Generate experimental cellulose-allomorph chains and crystallites as PDB.",
+    )
+    result.add_argument(
+        "--allomorph",
+        choices=("ialpha", "ibeta", "ii", "iii-i"),
+        default="ibeta",
+        help="cellulose crystal allomorph (default: ibeta)",
     )
     layout = result.add_mutually_exclusive_group()
     layout.add_argument(
@@ -126,6 +132,14 @@ def main() -> None:
         raise SystemExit("error: --oxidation must be between 0.1 and 1.0")
     if args.oxidation_model == "paajanen" and args.oxidation_scope != "surface":
         raise SystemExit("error: --oxidation-model paajanen requires --oxidation-scope surface")
+    if args.oxidation is not None and args.allomorph != "ibeta":
+        raise SystemExit("error: C6 oxidation is currently validated only for --allomorph ibeta")
+    if args.charmm_gui and args.allomorph in {"ii", "iii-i"}:
+        raise SystemExit(
+            f"error: cellulose {args.allomorph} PDB generation is available, but "
+            "this allomorph does not have a validated CHARMM-GUI Glycan Reader "
+            "workflow; omit --charmm-gui"
+        )
     layers = args.layers if args.layers is not None else PRESETS[args.preset or "single"]
     structure = build_structure(
         args.glucose,
@@ -135,6 +149,7 @@ def main() -> None:
         oxidation_protonated=args.oxidation_state == "protonated",
         oxidation_seed=args.seed,
         oxidation_model=args.oxidation_model,
+        allomorph=args.allomorph,
     )
     report = validate(structure)
     args.output.parent.mkdir(parents=True, exist_ok=True)

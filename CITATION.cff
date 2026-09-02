@@ -1,13 +1,33 @@
 cff-version: 1.2.0
-message: "If you use dynamics_cellulose, cite this software and the experimental cellulose I-beta structure below."
+message: "If you use dynamics_cellulose, cite this software and the primary crystallographic source for each allomorph used."
 title: "dynamics_cellulose"
 type: software
-version: 0.5.0
-date-released: 2026-08-31
+version: 0.6.0
+date-released: 2026-09-01
 authors:
   - family-names: "Caetano"
     given-names: "André de Araújo"
 references:
+  - type: article
+    title: "Crystal Structure and Hydrogen Bonding System in Cellulose Iα from Synchrotron X-ray and Neutron Fiber Diffraction"
+    authors:
+      - family-names: "Nishiyama"
+        given-names: "Yoshiharu"
+      - family-names: "Sugiyama"
+        given-names: "Junji"
+      - family-names: "Chanzy"
+        given-names: "Henri"
+      - family-names: "Langan"
+        given-names: "Paul"
+    journal: "Journal of the American Chemical Society"
+    volume: 125
+    start: 14300
+    end: 14306
+    year: 2003
+    doi: "10.1021/ja037055w"
+  - type: dataset
+    title: "Cellulose I-alpha crystal structure, COD 4114383"
+    url: "https://www.crystallography.net/cod/4114383.html"
   - type: article
     title: "Crystal Structure and Hydrogen-Bonding System in Cellulose Iβ from Synchrotron X-ray and Neutron Fiber Diffraction"
     authors:
@@ -26,6 +46,38 @@ references:
   - type: dataset
     title: "Cellulose I-beta crystal structure, COD 4114994"
     url: "https://www.crystallography.net/cod/4114994.html"
+  - type: article
+    title: "X-ray Structure of Mercerized Cellulose II at 1 Å Resolution"
+    authors:
+      - family-names: "Langan"
+        given-names: "Paul"
+      - family-names: "Nishiyama"
+        given-names: "Yoshiharu"
+      - family-names: "Chanzy"
+        given-names: "Henri"
+    journal: "Biomacromolecules"
+    volume: 2
+    start: 410
+    end: 416
+    year: 2001
+    doi: "10.1021/bm005612q"
+  - type: article
+    title: "Cellulose III_I Crystal Structure and Hydrogen Bonding by Synchrotron X-ray and Neutron Fiber Diffraction"
+    authors:
+      - family-names: "Wada"
+        given-names: "Masahisa"
+      - family-names: "Chanzy"
+        given-names: "Henri"
+      - family-names: "Nishiyama"
+        given-names: "Yoshiharu"
+      - family-names: "Langan"
+        given-names: "Paul"
+    journal: "Macromolecules"
+    volume: 37
+    start: 8548
+    end: 8555
+    year: 2004
+    doi: "10.1021/ma0485585"
   - type: article
     title: "Atomistic molecular dynamics simulations on the interaction of TEMPO-oxidized cellulose nanofibrils in water"
     authors:

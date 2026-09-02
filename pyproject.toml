@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dynamics-cellulose"
-version = "0.5.0"
-description = "Pure-Python builder for cellulose I-beta from open experimental CIF data"
+version = "0.6.0"
+description = "Pure-Python builder for experimental cellulose I-alpha, I-beta, II, and III-I crystals"
 requires-python = ">=3.10"
 dependencies = []
 
