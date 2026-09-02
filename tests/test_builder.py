@@ -325,7 +325,7 @@ class BuilderTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_structure(2, [1], oxidation_degree=0.09)
 
-    def test_paajanen_18_chain_25_percent_uses_alternating_surface_sites(self):
+    def test_paajanen_18_chain_25_percent_of_eligible_sites(self):
         structure = build_structure(
             20,
             [2, 3, 4, 4, 3, 2],
@@ -345,6 +345,21 @@ class BuilderTests(unittest.TestCase):
         self.assertEqual(report.oxidized_sites, 30)
         surface_chain_numbers = {1, 2, 3, 5, 6, 9, 10, 13, 14, 16, 17, 18}
         self.assertTrue(all(chain_number in surface_chain_numbers for chain_number, _ in oxidized))
+
+    def test_paajanen_surface_25_percent_means_60_carboxylates(self):
+        structure = build_structure(
+            20,
+            [2, 3, 4, 4, 3, 2],
+            oxidation_degree=0.50,
+            oxidation_scope="surface",
+            oxidation_seed=344,
+            oxidation_model="paajanen",
+        )
+        report = validate(structure)
+        self.assertEqual(structure.oxidation_eligible_sites, 120)
+        self.assertEqual(report.oxidized_sites, 60)
+        self.assertEqual(report.net_charge, -60)
+        self.assertEqual(report.oxidized_sites / 240, 0.25)
 
     def test_paajanen_selects_outward_alternating_class_per_surface_chain(self):
         structure = build_structure(20, [2, 3, 4, 4, 3, 2])

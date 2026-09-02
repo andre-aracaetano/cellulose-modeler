@@ -97,13 +97,14 @@ python builder.py --dp 20 --preset 18 --oxidation 0.25 \
 ```
 
 Use the alternating surface-site model of Paajanen *et al.* and oxidize 25%
-of its eligible C6 sites:
+of all C6 sites on the 12 surface chains. Because only one alternating class
+is eligible, this requires selecting 50% of the Paajanen-eligible sites:
 
 ```bash
-python builder.py --dp 20 --preset 18 --oxidation 0.25 \
+python builder.py --dp 20 --preset 18 --oxidation 0.50 \
   --oxidation-scope surface --oxidation-model paajanen \
   --oxidation-state deprotonated --seed 344 --charmm-gui \
-  -o outputs/tocnf_18x20_paajanen_ox25_seed344_charmm_gui.pdb
+  -o outputs/tocnf_18x20_paajanen_surface25_seed344_charmm_gui.pdb
 ```
 
 For a PDB that will be uploaded to CHARMM-GUI, add `--charmm-gui`:
@@ -326,7 +327,11 @@ spatial distributions at the same functionalization level, as required for
 studying the configuration sensitivity emphasized by Paajanen *et al.* The
 mode is defined only for `--oxidation-scope surface`.
 
-For the same profile, 25% oxidation relative to all 360 anhydroglucose units
+For the 18-chain, DP20 profile, 25% oxidation of the 240 C6 sites belonging to
+surface chains means 60 carboxylates. This is 50% of the 120 alternating
+Paajanen-eligible sites, so the correct request is `--oxidation 0.50`.
+
+By contrast, 25% oxidation relative to all 360 anhydroglucose units
 means 90 carboxylates. Because 90 is 75% of the 120 Paajanen-eligible sites,
 generate that model with `--oxidation 0.75`, not `--oxidation 0.25`.
 

@@ -132,15 +132,24 @@ The `2,3,4,4,3,2` fibril contains:
 In `paajanen` mode, `--oxidation` is the fraction of the **120 eligible sites**,
 not the fraction of all 360 AGUs.
 
-Thus:
+Thus, keeping the three denominators explicit:
 
-| Request | Carboxylates | Global fraction |
-|---|---:|---:|
-| `--oxidation 0.25` | 30 | 30/360 = 8.33% |
-| `--oxidation 0.75` | 90 | 90/360 = 25% |
-| `--oxidation 1.00` | 120 | 120/360 = 33.33% |
+| Request | Carboxylates | Eligible fraction | Surface-chain C6 fraction | All-AGU fraction |
+|---|---:|---:|---:|---:|
+| `--oxidation 0.25` | 30 | 25% | 12.5% | 8.33% |
+| `--oxidation 0.50` | 60 | 50% | 25% | 16.67% |
+| `--oxidation 0.75` | 90 | 75% | 37.5% | 25% |
+| `--oxidation 1.00` | 120 | 100% | 50% | 33.33% |
 
-For the selected global-25% system:
+For the selected surface-25% system:
+
+```text
+60 / 240 = 25% of C6 sites belonging to surface chains
+60 / 120 = 50% of Paajanen-eligible C6 sites
+60 / 360 = 16.67% of all AGUs
+```
+
+For a distinct global-25% system:
 
 ```text
 90 / 360 = 25% of all AGUs
@@ -168,6 +177,17 @@ python builder.py --dp 20 --preset 18 \
   --oxidation 0.25 --oxidation-state deprotonated \
   --seed 344 --charmm-gui \
   -o outputs/tocnf_18x20_paajanen_eligible25_seed344.pdb
+```
+
+Twenty-five percent of surface-chain C6 sites, equivalent to 50% of eligible
+sites and used for the validated surface-25% structure:
+
+```bash
+python builder.py --dp 20 --preset 18 \
+  --oxidation-model paajanen --oxidation-scope surface \
+  --oxidation 0.50 --oxidation-state deprotonated \
+  --seed 344 --charmm-gui \
+  -o outputs/tocnf_18x20_paajanen_surface25_seed344_charmm_gui.pdb
 ```
 
 Twenty-five percent global oxidation, equivalent to 75% of eligible sites:

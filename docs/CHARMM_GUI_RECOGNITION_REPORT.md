@@ -1,6 +1,6 @@
 # CHARMM-GUI carbohydrate-recognition investigation
 
-Date: 2026-08-24
+Date: 2026-09-02
 
 ## Summary
 
@@ -100,10 +100,12 @@ PDB and PSF contained the same 7,614 atoms in the same order. All 3,978 heavy
 atoms matched the pre-upload coordinates exactly at the PDB precision (RMSD
 and maximum displacement both 0.000 A).
 
-### TOCNF25, 18 chains x DP20
+### Paajanen surface-25% TOCNF, 18 chains x DP20
 
-The oxidation request selected 25% of the 240 eligible surface-chain sites:
-60 deprotonated C6 carboxylates and 300 intact glucose units.
+The oxidation request selected 60 of the 120 alternating Paajanen-eligible
+sites. This is 50% of eligible sites and exactly 25% of the 240 C6 sites on the
+12 surface chains. It produced 60 deprotonated C6 carboxylates and 300 intact
+glucose units; no C6 on an internal chain was oxidized.
 
 | Check | Result |
 | --- | ---: |
@@ -125,6 +127,13 @@ The oxidation request selected 25% of the 240 eligible surface-chain sites:
 Every oxidized C6 was bonded only to C5, O61, and O62. C5-C6 distances were
 1.519478-1.559819 A; both C6-O ranges were 1.259201-1.260861 A. PDB and PSF
 contained the same 7,494 atoms in the same order.
+
+All 60 `BGLCA` identities in the returned PSF matched the generated input.
+Every oxidized residue belonged to one parity class selected separately for
+its surface chain. For all 12 surface chains, the selected class had positive
+C5-to-C6 projection along the outward transverse direction and the excluded
+alternating class had negative projection. Heavy-atom RMSD and maximum
+displacement relative to the uploaded PDB were both 0.000 A.
 
 ## Automated regression coverage
 
