@@ -48,7 +48,7 @@ of carboxylates do not necessarily produce equal interactions: local charge
 density, counterion placement, hydration, and the relative alignment of charged
 regions all matter.
 
-This makes the model useful for Dynamics because it provides:
+This makes the model useful for Cellulose Modeler because it provides:
 
 1. an explicit definition of the eligible-site denominator;
 2. a structural connection to the alternating cellobiose repeat;
@@ -74,7 +74,7 @@ carboxylates in the crystallite. An internal formal charge would artificially
 favor water and counterion penetration and could distort crystal cohesion and
 adsorbate accessibility.
 
-Dynamics consequently chooses the class separately for every surface chain.
+Cellulose Modeler consequently chooses the class separately for every surface chain.
 For chain `i`, it defines an outward transverse direction from the fibril center
 to the chain and evaluates each residue's normalized C5→C6 vector:
 
@@ -84,7 +84,7 @@ p_j = unit(C5->C6)_j dot unit(outward)_i
 
 The mean projection is calculated for the two alternating classes. The class
 with the larger mean outward projection becomes eligible. This projection rule
-is a Dynamics adaptation motivated by the surface chemistry; it is **not** an
+is a Cellulose Modeler adaptation motivated by the surface chemistry; it is **not** an
 atom-selection equation reported in the Paajanen paper.
 
 For the regular 18-chain `2,3,4,4,3,2` profile at DP20, the eligible classes are:

@@ -1,9 +1,9 @@
 cff-version: 1.2.0
-message: "If you use dynamics_cellulose, cite this software and the primary crystallographic source for each allomorph used."
-title: "dynamics_cellulose"
+message: "If you use Cellulose Modeler, cite this software and the primary crystallographic source for each allomorph used."
+title: "Cellulose Modeler"
 type: software
-version: 0.6.0
-date-released: 2026-09-01
+version: 0.7.0
+date-released: 2026-09-04
 authors:
   - family-names: "Caetano"
     given-names: "André de Araújo"

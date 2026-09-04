@@ -84,7 +84,7 @@ class CrystallographicReference:
 
     def __init__(self, metadata: ReferenceMetadata) -> None:
         self.metadata = metadata
-        path = files("cellulose_core").joinpath(f"data/{metadata.filename}")
+        path = files("cellulose_modeler").joinpath(f"data/{metadata.filename}")
         text = path.read_text(encoding="utf-8")
         self.a = self._tag(text, "_cell_length_a")
         self.b = self._tag(text, "_cell_length_b")

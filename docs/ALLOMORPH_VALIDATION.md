@@ -18,7 +18,7 @@
 | II | 8.100 | 9.030 | 10.310 | 90.00 | 90.00 | 117.10 | c |
 | III_I | 4.450 | 7.850 | 10.310 | 90.00 | 90.00 | 105.10 | c |
 
-Dynamics rotates the global Cartesian frame so the chain axis is written along
+Cellulose Modeler rotates the global Cartesian frame so the chain axis is written along
 PDB `z`; it does not deform or minimize the experimental heavy-atom geometry.
 
 ## Local 18-chain, DP20 validation

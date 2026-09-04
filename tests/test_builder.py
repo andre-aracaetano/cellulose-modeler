@@ -5,11 +5,11 @@ import subprocess
 import sys
 from collections import defaultdict
 
-from cellulose_core.builder import build_structure, _paajanen_eligible_residues
-from cellulose_core.geometry import distance
-from cellulose_core.pdbio import write_pdb
-from cellulose_core.reference import REFERENCE, REFERENCES
-from cellulose_core.validation import validate
+from cellulose_modeler.builder import build_structure, _paajanen_eligible_residues
+from cellulose_modeler.geometry import distance
+from cellulose_modeler.pdbio import write_pdb
+from cellulose_modeler.reference import REFERENCE, REFERENCES
+from cellulose_modeler.validation import validate
 
 
 class BuilderTests(unittest.TestCase):

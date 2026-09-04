@@ -1,6 +1,6 @@
 # Crystallographic data provenance
 
-Dynamics Cellulose contains independent crystallographic references for four
+Cellulose Modeler contains independent crystallographic references for four
 cellulose allomorphs. The generator never reads or imports coordinates produced
 by Cellulose Builder or CHARMM-GUI.
 
@@ -17,7 +17,7 @@ Crystallography Open Database (COD), where it is distributed under CC0:
   <https://doi.org/10.1021/ja037055w>
 
 The deposited model is a one-chain triclinic `P1` unit cell. Its crystallographic
-`a` vector is the chain axis. Dynamics preserves the two experimental glucosyl
+`a` vector is the chain axis. Cellulose Modeler preserves the two experimental glucosyl
 residues forming the cellobiose repeat and rotates the final Cartesian frame so
 the chain axis is written along PDB `z`.
 
@@ -46,10 +46,10 @@ parameters reported in the primary high-resolution synchrotron study:
 
 The coordinates were transcribed into a minimal, human-readable CIF maintained
 by this project. The original model has two independent antiparallel chains in
-`P2_1`. Dynamics explicitly expands one chain in `+c` and the other in `-c`,
+`P2_1`. Cellulose Modeler explicitly expands one chain in `+c` and the other in `-c`,
 including the crystallographic lateral translation required to preserve the
 C1–O4 linkage. The X-ray model does not experimentally locate hydroxyl
-hydrogens; Dynamics models those positions and declares them as modeled.
+hydrogens; Cellulose Modeler models those positions and declares them as modeled.
 
 The earlier neutron refinement of cellulose II is also scientifically relevant
 to its hydrogen-bonding alternatives, but it is not the coordinate source used
@@ -71,7 +71,7 @@ parameters from the primary synchrotron X-ray and neutron study:
   <https://doi.org/10.1021/ma0485585>
 
 The coordinates were transcribed into a minimal project-owned CIF. The model is
-a one-chain monoclinic `P2_1` structure with parallel chains. Dynamics applies
+a one-chain monoclinic `P2_1` structure with parallel chains. Cellulose Modeler applies
 the experimental screw symmetry to generate the cellobiose repeat.
 
 ## Coordinate treatment common to all references
@@ -94,6 +94,6 @@ bonded parameters, minimization, and equilibration.
 ## Scientific limitation of C6 oxidation
 
 The current oxidation implementations, particularly the Paajanen alternating
-surface-site model, are validated only for cellulose Iβ. Dynamics rejects
+surface-site model, are validated only for cellulose Iβ. Cellulose Modeler rejects
 oxidation requests for Iα, II, and III_I rather than silently transferring an
 Iβ-specific surface hypothesis to different crystal packings.

@@ -27,7 +27,7 @@ def parse_layers(text: str) -> list[int]:
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
-        prog="dynamics-cellulose",
+        prog="cellulose-modeler",
         description="Generate experimental cellulose-allomorph chains and crystallites as PDB.",
     )
     result.add_argument(

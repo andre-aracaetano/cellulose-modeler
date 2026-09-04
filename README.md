@@ -1,9 +1,9 @@
-# Dynamics Cellulose Maker
+# Cellulose Modeler
 
-`dynamics_cellulose` is a dependency-free Python generator for finite cellulose
+`cellulose_modeler` is a dependency-free Python generator for finite cellulose
 Iα, Iβ, II, and III_I chains and crystallites with arbitrary degrees of
 polymerization and transverse row profiles. The user-facing launcher is `builder.py`; reusable
-implementation modules live in `cellulose_core/`, and generated structures go
+implementation modules live in `cellulose_modeler/`, and generated structures go
 to `outputs/` by default.
 
 Version 0.6 adds experimental Iα, II, and III_I references and a general
@@ -39,7 +39,7 @@ requested DP, and writes the selected row profile as PDB. It preserves the
 parallel packing of Iα, Iβ, and III_I and the antiparallel origin/center chains
 of cellulose II.
 
-See [the detailed data provenance](cellulose_core/data/PROVENANCE.md) and
+See [the detailed data provenance](cellulose_modeler/data/PROVENANCE.md) and
 [`CITATION.cff`](CITATION.cff). The geometry and external validation protocol
 are recorded in [`docs/ALLOMORPH_VALIDATION.md`](docs/ALLOMORPH_VALIDATION.md).
 
@@ -214,7 +214,7 @@ chains before building the system. This includes changing individual sugar
 units, extending a chain, adding branches, selecting linkage positions and
 anomeric configurations, and applying the chemical modifications made
 available by CHARMM-GUI. These operations are performed in CHARMM-GUI after
-upload; `dynamics_cellulose` currently supplies the experimentally based
+upload; Cellulose Modeler currently supplies the experimentally based
 starting crystal geometry.
 
 Keep explicit connectivity enabled for this workflow (the default). The
@@ -310,12 +310,12 @@ alternating glucosyl environments of the cellulose Iβ 2_1 helical repeat and
 with experimental reports of alternating glucose/glucuronate structures on
 oxidized cellulose-I microfibril surfaces. Because the solvent-facing class is
 not the same residue-number parity on opposite sides of a fibril,
-`dynamics_cellulose` chooses it separately for each surface chain. It compares
+Cellulose Modeler chooses it separately for each surface chain. It compares
 the mean projection of the two alternating classes' C5→C6 vectors onto that
 chain's outward transverse direction and retains the class pointing farther
 out of the crystallite. No SASA or reaction-energy calculation is implied.
 This outward-facing rule is a documented geometric adaptation made by
-`dynamics_cellulose`; it is not presented as an atom-selection algorithm
+Cellulose Modeler; it is not presented as an atom-selection algorithm
 published by Paajanen *et al.*
 
 In this mode, `--oxidation FRACTION` uses the alternating sites—not every C6

@@ -3,14 +3,17 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dynamics-cellulose"
-version = "0.6.0"
+name = "cellulose-modeler"
+version = "0.7.0"
 description = "Pure-Python builder for experimental cellulose I-alpha, I-beta, II, and III-I crystals"
 requires-python = ">=3.10"
 dependencies = []
 
 [project.scripts]
-dynamics-cellulose = "cellulose_core.cli:main"
+cellulose-modeler = "cellulose_modeler.cli:main"
 
 [tool.setuptools.package-data]
-cellulose_core = ["data/*.cif", "data/*.md"]
+cellulose_modeler = ["data/*.cif", "data/*.md"]
+
+[project.urls]
+Repository = "https://github.com/andre-aracaetano/cellulose-modeler"
