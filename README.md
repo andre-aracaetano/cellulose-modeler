@@ -6,7 +6,8 @@ polymerization and transverse row profiles. The user-facing launcher is `builder
 implementation modules live in `cellulose_modeler/`, and generated structures go
 to `outputs/` by default.
 
-Version 0.6 adds experimental Iα, II, and III_I references and a general
+Version 0.7 provides the renamed Cellulose Modeler package and command-line
+interface. Version 0.6 added experimental Iα, II, and III_I references and a general
 allomorph-aware crystal engine. Version 0.4 added the validated `--charmm-gui`
 output profile. It prevents an
 observed carbohydrate-recognition ambiguity without changing the cellulose

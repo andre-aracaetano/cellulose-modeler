@@ -6,7 +6,32 @@ build-backend = "setuptools.build_meta"
 name = "cellulose-modeler"
 version = "0.7.0"
 description = "Pure-Python builder for experimental cellulose I-alpha, I-beta, II, and III-I crystals"
+readme = "README.md"
 requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "André de Araújo Caetano" },
+]
+keywords = [
+    "cellulose",
+    "molecular-modeling",
+    "crystallography",
+    "nanocellulose",
+    "PDB",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
 dependencies = []
 
 [project.scripts]
@@ -15,5 +40,11 @@ cellulose-modeler = "cellulose_modeler.cli:main"
 [tool.setuptools.package-data]
 cellulose_modeler = ["data/*.cif", "data/*.md"]
 
+[tool.setuptools.packages.find]
+include = ["cellulose_modeler*"]
+
 [project.urls]
+Homepage = "https://github.com/andre-aracaetano/cellulose-modeler"
 Repository = "https://github.com/andre-aracaetano/cellulose-modeler"
+Documentation = "https://github.com/andre-aracaetano/cellulose-modeler#readme"
+Issues = "https://github.com/andre-aracaetano/cellulose-modeler/issues"
