@@ -1,13 +1,21 @@
 # Cellulose Modeler
 
+[![PyPI version](https://img.shields.io/pypi/v/cellulose-modeler.svg)](https://pypi.org/project/cellulose-modeler/)
+[![Python versions](https://img.shields.io/pypi/pyversions/cellulose-modeler.svg)](https://pypi.org/project/cellulose-modeler/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 `cellulose_modeler` is a dependency-free Python generator for finite cellulose
 Iα, Iβ, II, and III_I chains and crystallites with arbitrary degrees of
 polymerization and transverse row profiles. The user-facing launcher is `builder.py`; reusable
 implementation modules live in `cellulose_modeler/`, and generated structures go
 to `outputs/` by default.
 
-Version 0.7 provides the renamed Cellulose Modeler package and command-line
-interface. Version 0.6 added experimental Iα, II, and III_I references and a general
+Version 0.7 marks a major accessibility advance: Cellulose Modeler is now
+available from PyPI and can be used as a small, reusable Python library or as a
+command-line program on any supported operating system. A complete executable
+[Python/Jupyter tutorial](docs/CELLULOSE_MODELER_TUTORIAL.ipynb) demonstrates
+chains, fibrils, allomorphs, CHARMM-GUI output, and Paajanen surface oxidation.
+Version 0.6 added experimental Iα, II, and III_I references and a general
 allomorph-aware crystal engine. Version 0.4 added the validated `--charmm-gui`
 output profile. It prevents an
 observed carbohydrate-recognition ambiguity without changing the cellulose
@@ -45,6 +53,36 @@ See [the detailed data provenance](cellulose_modeler/data/PROVENANCE.md) and
 are recorded in [`docs/ALLOMORPH_VALIDATION.md`](docs/ALLOMORPH_VALIDATION.md).
 
 ## Quick start
+
+Install the published package from PyPI:
+
+```bash
+python -m pip install cellulose-modeler
+```
+
+Use it directly from Python:
+
+```python
+from cellulose_modeler import build_structure, write_pdb
+
+fibril = build_structure(
+    glucose_units=20,
+    layers=[2, 3, 4, 4, 3, 2],
+    allomorph="ibeta",
+)
+write_pdb("cellulose_ibeta_18x20.pdb", fibril)
+```
+
+Or use the installed command-line application:
+
+```bash
+cellulose-modeler --dp 20 --preset 18 -o cellulose_ibeta_18x20.pdb
+```
+
+The PyPI release removes the need to clone the repository merely to use the
+generator. It has no runtime dependencies and requires Python 3.10 or newer.
+
+### Running from a source checkout
 
 Download the project, open a terminal in its root directory, and run:
 
