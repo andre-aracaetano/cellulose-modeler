@@ -41,8 +41,7 @@ Experimental sources:
   410–416. <https://doi.org/10.1021/bm005612q>. 
   Alternative link: https://pubmed.ncbi.nlm.nih.gov/11749200/
 - **III_I:** Wada, Chanzy, Nishiyama, and Langan, *Macromolecules* 37 (2004),
-  8548–8555. <https://doi.org/10.1021/ma0485585>.\\
-  Alternative link: https://pubs.acs.org/mamobx/article-abstract/37/23/8548/3601942/Cellulose-IIII-Crystal-Structure-and-Hydrogen?redirectedFrom=fulltext
+  8548–8555. <https://doi.org/10.1021/ma0485585>.\ Alternative link: https://pubs.acs.org/mamobx/article-abstract/37/23/8548/3601942/Cellulose-IIII-Crystal-Structure-and-Hydrogen?redirectedFrom=fulltext
 
 The implementation parses the selected CIF, applies `P1` or `P2_1` symmetry,
 uses a general triclinic cell matrix, repeats the crystallographic motif to the
