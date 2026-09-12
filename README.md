@@ -38,9 +38,11 @@ Experimental sources:
 - **Iβ:** Nishiyama, Langan, and Chanzy, *JACS* 124 (2002), 9074–9082.
   <https://doi.org/10.1021/ja0257319>; COD 4114994.
 - **II:** Langan, Nishiyama, and Chanzy, *Biomacromolecules* 2 (2001),
-  410–416. <https://doi.org/10.1021/bm005612q>.
+  410–416. <https://doi.org/10.1021/bm005612q>. 
+  Alternative link: https://pubmed.ncbi.nlm.nih.gov/11749200/
 - **III_I:** Wada, Chanzy, Nishiyama, and Langan, *Macromolecules* 37 (2004),
   8548–8555. <https://doi.org/10.1021/ma0485585>.
+  Alternative link: https://pubs.acs.org/mamobx/article-abstract/37/23/8548/3601942/Cellulose-IIII-Crystal-Structure-and-Hydrogen?redirectedFrom=fulltext
 
 The implementation parses the selected CIF, applies `P1` or `P2_1` symmetry,
 uses a general triclinic cell matrix, repeats the crystallographic motif to the
