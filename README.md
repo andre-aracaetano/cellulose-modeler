@@ -28,8 +28,7 @@ oxidation to protonated carboxylic acid (`COOH`) or deprotonated carboxylate
 The program constructs every allomorph from an independently bundled
 experimental crystallographic reference. Iα and Iβ use the public-domain COD
 deposits 4114383 and 4114994. Cellulose II and III_I use minimal CIFs transcribed
-from their primary high-resolution crystallographic publications. Generation
-never reads coordinates produced by Cellulose Builder or CHARMM-GUI.
+from their primary high-resolution crystallographic publications.
 
 Experimental sources:
 
