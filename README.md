@@ -10,8 +10,12 @@ polymerization and transverse row profiles. The user-facing launcher is `builder
 implementation modules live in `cellulose_modeler/`, and generated structures go
 to `outputs/` by default.
 
-Version 0.7 marks a major accessibility advance: Cellulose Modeler is now
-available from PyPI and can be used as a small, reusable Python library or as a
+Version 0.8 adds reproducible C6 sulfate-half-ester functionalization
+(`OSO3H`/`OSO3-`), including random and global alternating surface-site
+models. The 18-chain, DP20 Iβ workflow was externally validated with
+CHARMM-GUI 3.7: all 60 test sulfates were retained, typed, bonded, and assigned
+the expected total charge of `-60 e`. Version 0.7 made Cellulose Modeler
+available from PyPI as a small, reusable Python library or as a
 command-line program on any supported operating system. A complete executable
 [Python/Jupyter tutorial](docs/CELLULOSE_MODELER_TUTORIAL.ipynb) demonstrates
 chains, fibrils, allomorphs, CHARMM-GUI output, and Paajanen surface oxidation.
@@ -53,15 +57,17 @@ See [the detailed data provenance](cellulose_modeler/data/PROVENANCE.md) and
 [`CITATION.cff`](CITATION.cff). The geometry and external validation protocol
 are recorded in [`docs/ALLOMORPH_VALIDATION.md`](docs/ALLOMORPH_VALIDATION.md).
 
-## Quick start
+## Quick start: Python library
 
-Install the published package from PyPI:
+Install the package from PyPI:
 
 ```bash
 python -m pip install cellulose-modeler
 ```
 
-Use it directly from Python:
+The public API has two main functions: `build_structure()` creates the
+in-memory molecular model and `write_pdb()` serializes it. No command-line
+subprocess is required.
 
 ```python
 from cellulose_modeler import build_structure, write_pdb
@@ -74,102 +80,124 @@ fibril = build_structure(
 write_pdb("cellulose_ibeta_18x20.pdb", fibril)
 ```
 
-Or use the installed command-line application:
+The package has no runtime dependencies and requires Python 3.10 or newer.
 
-```bash
-cellulose-modeler --dp 20 --preset 18 -o cellulose_ibeta_18x20.pdb
+### Crystal form, DP, and transverse profile
+
+Select any supported experimental allomorph and any positive DP/profile:
+
+```python
+from cellulose_modeler import build_structure, write_pdb
+
+ialpha = build_structure(20, [2, 3, 4, 4, 3, 2], allomorph="ialpha")
+write_pdb("cellulose_ialpha_18x20.pdb", ialpha, charmm_gui=True)
+
+cellulose_ii = build_structure(20, [2, 3, 4, 4, 3, 2], allomorph="ii")
+write_pdb("cellulose_ii_18x20.pdb", cellulose_ii)
+
+custom = build_structure(16, [3, 5, 7, 7, 5, 3], allomorph="ibeta")
+write_pdb("custom_cellulose.pdb", custom)
+
+single_chain = build_structure(37, [1], allomorph="ibeta")
+write_pdb("chain_DP37.pdb", single_chain)
 ```
 
-The PyPI release removes the need to clone the repository merely to use the
-generator. It has no runtime dependencies and requires Python 3.10 or newer.
+### TEMPO oxidation: random surface or all chains
 
-### Running from a source checkout
+`oxidation_degree` is evaluated over the sites eligible under the selected
+scope/model. The state may be deprotonated `COO-` or protonated `COOH`.
 
-Download the project, open a terminal in its root directory, and run:
+```python
+from cellulose_modeler import build_structure, write_pdb
 
-```bash
-python builder.py --dp 20 --preset 18
+tocnf = build_structure(
+    glucose_units=20,
+    layers=[2, 3, 4, 4, 3, 2],
+    allomorph="ibeta",
+    oxidation_degree=0.25,
+    oxidation_scope="surface",       # "surface" or "all"
+    oxidation_model="random-surface",
+    oxidation_protonated=False,       # False: COO-; True: COOH
+    oxidation_seed=20260822,
+)
+write_pdb("tocnf_random_surface25.pdb", tocnf)
 ```
 
-Select another experimental allomorph with `--allomorph`:
+### TEMPO oxidation: Paajanen alternating sites
 
-```bash
-python builder.py --allomorph ialpha --dp 20 --preset 18 --charmm-gui \
-  -o outputs/cellulose_ialpha_18x20_charmm_gui.pdb
-python builder.py --allomorph ii --dp 20 --preset 18 \
-  -o outputs/cellulose_ii_18x20.pdb
-python builder.py --allomorph iii-i --dp 20 --preset 18 \
-  -o outputs/cellulose_iii_i_18x20.pdb
+For 18 chains × DP20, 12 surface chains provide 120 outward-facing,
+alternating C6 candidates. Selecting 50% of that pool produces 60
+carboxylates, equal to 25% of all 240 surface C6 sites.
+
+```python
+tocnf_paajanen = build_structure(
+    glucose_units=20,
+    layers=[2, 3, 4, 4, 3, 2],
+    allomorph="ibeta",
+    oxidation_degree=0.50,
+    oxidation_scope="surface",
+    oxidation_model="paajanen",
+    oxidation_protonated=False,
+    oxidation_seed=344,
+)
+write_pdb(
+    "tocnf_paajanen_surface25_charmm_gui.pdb",
+    tocnf_paajanen,
+    charmm_gui=True,
+)
 ```
 
-The resulting file is written to `outputs/cellulose.pdb`. The directory is
-created automatically when needed. On systems where Python 3 is exposed as
-`python3` (commonly Linux and macOS), use `python3 builder.py` instead.
+### C6 sulfation: random surface or all chains
 
-An arbitrary transverse arrangement is a comma-separated list of chain counts
-from top to bottom:
+Sulfation attaches a sulfate half-ester through O6. `False` generates
+`OSO3-`; `True` generates neutral `OSO3H`.
 
-```bash
-python builder.py \
-  --dp 16 \
-  --layers 3,5,7,7,5,3 \
-  --output outputs/custom_cellulose.pdb
+```python
+sulfated_cnc = build_structure(
+    glucose_units=20,
+    layers=[2, 3, 4, 4, 3, 2],
+    allomorph="ibeta",
+    sulfation_degree=0.25,
+    sulfation_scope="surface",        # "surface" or "all"
+    sulfation_model="random-surface",
+    sulfation_protonated=False,        # False: OSO3-; True: OSO3H
+    sulfation_seed=344,
+)
+write_pdb("cnc_sulfated_random_surface25.pdb", sulfated_cnc)
 ```
 
-For one chain with any positive DP:
+### C6 sulfation: global Paajanen-style selection
 
-```bash
-python builder.py --dp 37 --preset single -o outputs/chain_DP37.pdb
+This mode uses the same eligibility and global random sampling algorithm as
+TEMPO oxidation. It does not impose an equal number of sulfates per chain.
+
+```python
+sulfated_paajanen = build_structure(
+    glucose_units=20,
+    layers=[2, 3, 4, 4, 3, 2],
+    allomorph="ibeta",
+    sulfation_degree=0.50,             # 60 of 120 eligible sites
+    sulfation_scope="surface",
+    sulfation_model="paajanen",
+    sulfation_protonated=False,
+    sulfation_seed=344,
+)
+write_pdb(
+    "cnc_sulfated_paajanen_surface25_charmm_gui.pdb",
+    sulfated_paajanen,
+    charmm_gui=True,
+)
 ```
 
-Question-and-answer mode:
+Oxidation and sulfation are mutually exclusive in one structure. Counts are
+rounded to the nearest whole eligible site, and a seed makes the random spatial
+realization reproducible. Surface chains are the top and bottom rows plus both
+boundary chains of every intermediate row.
 
-```bash
-python builder.py --interactive
-```
+### Optional command-line interface
 
-Randomly oxidize 25% of the C6 sites on surface chains to carboxylate groups:
-
-```bash
-python builder.py --dp 20 --preset 18 --oxidation 0.25 \
-  --oxidation-scope surface --oxidation-state deprotonated --seed 20260822 \
-  -o outputs/cnf_18x20_ox25_surface_deprotonated.pdb
-```
-
-Use the alternating surface-site model of Paajanen *et al.* and oxidize 25%
-of all C6 sites on the 12 surface chains. Because only one alternating class
-is eligible, this requires selecting 50% of the Paajanen-eligible sites:
-
-```bash
-python builder.py --dp 20 --preset 18 --oxidation 0.50 \
-  --oxidation-scope surface --oxidation-model paajanen \
-  --oxidation-state deprotonated --seed 344 --charmm-gui \
-  -o outputs/tocnf_18x20_paajanen_surface25_seed344_charmm_gui.pdb
-```
-
-For a PDB that will be uploaded to CHARMM-GUI, add `--charmm-gui`:
-
-```bash
-python builder.py --dp 20 --preset 18 --charmm-gui \
-  -o outputs/cnf_18x20_charmm_gui.pdb
-
-python builder.py --dp 20 --preset 18 --oxidation 0.25 \
-  --oxidation-scope surface --oxidation-state deprotonated --seed 344 \
-  --charmm-gui -o outputs/tocnf25_18x20_charmm_gui.pdb
-```
-
-Oxidation is disabled unless `--oxidation` is supplied. Surface chains are the
-chains in the top and bottom rows plus both boundary chains of every intermediate
-row. With the default `random-surface` model, the requested fraction is applied
-to every C6 in the chosen scope. With `paajanen`, it is applied only to the
-alternating eligible sites described below. Counts are rounded to the nearest
-whole site. Selection is random; use `--seed` to make it reproducible.
-Deprotonated `COO-` is the default oxidation state, while `--oxidation-state
-protonated` generates neutral `COOH`.
-
-Available presets are `single`, `18` (`2,3,4,4,3,2`) and `36`
-(`3,4,5,6,6,5,4,3`). Presets are conveniences only; `--layers` accepts any
-positive row profile that fits within classic PDB limits.
+The same features remain available through the installed `cellulose-modeler`
+command. Run `cellulose-modeler --help` for the complete reference.
 
 ## Command-line options
 
@@ -191,7 +219,11 @@ reference. All currently available options are listed below.
 | `--oxidation-scope surface\|all` | Restrict eligible C6 sites to boundary chains or include every chain. | `surface` |
 | `--oxidation-model random-surface\|paajanen` | Use every C6 in the selected scope, or alternating C6 sites on surface chains. | `random-surface` |
 | `--oxidation-state deprotonated\|protonated` | Generate `COO-` or neutral `COOH`. | `deprotonated` |
-| `--seed N` | Fix random selection for reproducible structures. | Random |
+| `--sulfation FRACTION` | Enable the experimental C6 sulfate-half-ester model at a degree from `0.1` to `1.0`. Mutually exclusive with `--oxidation`. | Disabled |
+| `--sulfation-scope surface\|all` | Restrict eligible C6 hydroxyls to boundary chains or include every chain. | `surface` |
+| `--sulfation-model random-surface\|paajanen` | Use every C6 in the selected scope, or globally sample alternating outward-facing C6 sites on surface chains. | `random-surface` |
+| `--sulfation-state deprotonated\|protonated` | Generate `OSO3-` or neutral `OSO3H`. | `deprotonated` |
+| `--seed N` | Fix random functionalization-site selection for reproducible structures. | Random |
 | `--interactive`, `-i` | Ask interactively for DP, layers, and output path instead of requiring those values on the command line. A blank layers answer selects one chain. | Disabled |
 | `--help`, `-h` | Display the command reference and exit. | — |
 
@@ -203,7 +235,8 @@ therefore mutually exclusive. The total number of residues is
 ## CHARMM-GUI compatibility
 
 The PDB generator is fully functional as a standalone structure builder. Its
-outputs, including non-oxidized cellulose and C6-oxidized nanofibrils, have
+outputs, including non-oxidized cellulose, C6-oxidized nanofibrils, and the
+validated C6-sulfated Iβ test system, have
 been successfully recognized by both
 [CHARMM-GUI PDB Reader & Manipulator](https://www.charmm-gui.org/?doc=input/pdbreader)
 and [Glycan Reader & Modeler](https://www.charmm-gui.org/?doc=input/glycan).
@@ -213,7 +246,7 @@ CHARMM-formatted PDB and PSF files and have been used successfully in short
 molecular-dynamics tests.
 
 This validated statement currently applies to Iβ (including the supported
-Paajanen oxidation workflow) and to non-oxidized Iα. Cellulose II and III_I
+Paajanen oxidation and sulfation workflows) and to non-oxidized Iα. Cellulose II and III_I
 remain available as standalone crystallographic PDBs, but `--charmm-gui` is
 rejected for both because no validated Glycan Reader workflow is available.
 For cellulose II specifically, Glycan Reader 3.7 repeatedly detached the
@@ -378,9 +411,49 @@ generate that model with `--oxidation 0.75`, not `--oxidation 0.25`.
 See [`docs/PAAJANEN_SURFACE_OXIDATION.md`](docs/PAAJANEN_SURFACE_OXIDATION.md)
 for the scientific rationale, degree definitions, validation and limitations.
 
+## C6 sulfate-half-ester model
+
+Sulfuric-acid hydrolysis can esterify accessible cellulose hydroxyls and leave
+anionic sulfate half-esters on CNC surfaces. The implemented structural
+hypothesis attaches the group through the existing C6 oxygen:
+
+```text
+C6-CH2-OH  ->  C6-CH2-O-SO3H  ->  C6-CH2-O-SO3- + H+
+```
+
+Unlike TEMPO oxidation, sulfation retains `C6`, `H61`, `H62`, and `O6`.
+It removes only the alcohol proton and adds `S6`, `O61`, `O62`, and `O63`;
+protonated sulfate additionally contains `HO63`. Each deprotonated site has a
+nominal charge of `-1 e`. `--sulfation` is the fraction of C6 sites in the
+selected scope and counts are rounded to the nearest whole site.
+
+The default `surface` scope represents the heterogeneous, surface-accessible
+chemistry of sulfuric-acid-derived CNC. The `all` scope is available as a
+controlled modeling hypothesis and must not be described as a realistic CNC
+hydrolysis product without separate justification. C6 is a common and
+experimentally observed assignment, but the literature does not establish
+exclusive C6 regioselectivity for every CNC preparation; minor or unresolved
+C2/C3 substitution can occur. See
+[`docs/C6_SULFATION.md`](docs/C6_SULFATION.md) for sources and limitations.
+
+With `--sulfation-model paajanen`, the program reuses the TEMPO model's exact
+eligibility and sampling algorithm: one outward-facing alternating C6 class is
+identified independently on each surface chain, all eligible residues are
+pooled, and one seeded global random sample is drawn. There is no per-chain
+quota or equal distribution. For the 18-chain, DP20 profile this gives 120
+eligible sites; `--sulfation 0.50` selects 60 sulfates, equivalent to 25% of all
+240 surface C6 sites.
+
+The 18-chain, DP20, 60-sulfate Iβ test was processed by CHARMM-GUI 3.7. The
+returned PDB/PSF retained 7,794 atoms and all 60 sulfate groups, renamed the
+terminal oxygens to `OS62/OS63/OS64`, assigned `SC/OC2DP` atom types, contained
+all 240 expected sulfur bonds, and had net charge `-60 e`. This validates that
+specific recognition workflow; normal inspection, minimization, equilibration,
+and matching force-field parameter files remain required for simulation.
+
 ## Current scope and limits
 
-Version 0.6 implements experimental Iα, Iβ, II, and III_I structures with
+Version 0.8 implements experimental Iα, Iβ, II, and III_I structures with
 locally tested crystallographic geometry and PDB connectivity. The CHARMM-GUI
 profile is supported only for Iα and Iβ; II and III_I remain standalone PDB
 outputs and are not advertised as Glycan Reader compatible.
@@ -388,6 +461,9 @@ outputs and are not advertised as Glycan Reader compatible.
 C6 oxidation is currently restricted to Iβ. In particular, the Paajanen model
 is not transferred automatically to other allomorphs because their C6
 orientations, exposed faces, and, for cellulose II, chain directions differ.
+The experimental C6 sulfation model is likewise restricted to Iβ until its
+surface placement and downstream topology workflow are validated for other
+allomorphs.
 
 Classic PDB supports at most 62 distinct one-character chain IDs, 99,999 atoms,
 and coordinates below 10,000 Å in the fields used here. A future mmCIF writer
@@ -402,7 +478,8 @@ python -m unittest discover -s tests -v
 The checks include odd-DP chains, the 18-chain profile, fixed-column PDB
 formatting, explicit connectivity, intact C6 chemistry, the historical CARM
 regression, CHARMM-directed residue ordering, hydroxyl-H omission, and 25%
-C6-oxidized output. They also verify the Paajanen eligible-site count,
+C6-oxidized and C6-sulfated output. They also verify sulfate geometry,
+connectivity, charge and reproducibility, the Paajanen eligible-site count,
 chain-specific outward alternating classes and rejection of incompatible
 `all` scope.
 

@@ -77,11 +77,18 @@ def parser() -> argparse.ArgumentParser:
             "residues for O4(i)-C1(i+1) recognition"
         ),
     )
-    result.add_argument(
+    chemistry = result.add_mutually_exclusive_group()
+    chemistry.add_argument(
         "--oxidation",
         type=float,
         metavar="FRACTION",
         help="random C6 oxidation degree from 0.1 to 1.0 (disabled by default)",
+    )
+    chemistry.add_argument(
+        "--sulfation",
+        type=float,
+        metavar="FRACTION",
+        help="random C6 sulfate-half-ester degree from 0.1 to 1.0 (disabled by default)",
     )
     result.add_argument(
         "--oxidation-scope",
@@ -105,9 +112,30 @@ def parser() -> argparse.ArgumentParser:
         help="generate COO- or COOH groups (default: deprotonated)",
     )
     result.add_argument(
+        "--sulfation-scope",
+        choices=("surface", "all"),
+        default="surface",
+        help="sulfate boundary chains only or all chains (default: surface)",
+    )
+    result.add_argument(
+        "--sulfation-state",
+        choices=("deprotonated", "protonated"),
+        default="deprotonated",
+        help="generate OSO3- or OSO3H groups (default: deprotonated)",
+    )
+    result.add_argument(
+        "--sulfation-model",
+        choices=("random-surface", "paajanen"),
+        default="random-surface",
+        help=(
+            "eligible-site model: all C6 in the requested scope, or alternating "
+            "outward-facing C6 sites on surface chains (default: random-surface)"
+        ),
+    )
+    result.add_argument(
         "--seed",
         type=int,
-        help="random seed for reproducible oxidation-site selection",
+        help="random seed for reproducible functionalization-site selection",
     )
     result.add_argument(
         "--interactive", "-i", action="store_true", help="ask for DP, layers, and output path"
@@ -130,10 +158,16 @@ def main() -> None:
         raise SystemExit("error: --glucose/--dp must be at least 1")
     if args.oxidation is not None and not 0.1 <= args.oxidation <= 1.0:
         raise SystemExit("error: --oxidation must be between 0.1 and 1.0")
+    if args.sulfation is not None and not 0.1 <= args.sulfation <= 1.0:
+        raise SystemExit("error: --sulfation must be between 0.1 and 1.0")
     if args.oxidation_model == "paajanen" and args.oxidation_scope != "surface":
         raise SystemExit("error: --oxidation-model paajanen requires --oxidation-scope surface")
     if args.oxidation is not None and args.allomorph != "ibeta":
         raise SystemExit("error: C6 oxidation is currently validated only for --allomorph ibeta")
+    if args.sulfation is not None and args.allomorph != "ibeta":
+        raise SystemExit("error: C6 sulfation is currently implemented only for --allomorph ibeta")
+    if args.sulfation_model == "paajanen" and args.sulfation_scope != "surface":
+        raise SystemExit("error: --sulfation-model paajanen requires --sulfation-scope surface")
     if args.charmm_gui and args.allomorph in {"ii", "iii-i"}:
         raise SystemExit(
             f"error: cellulose {args.allomorph} PDB generation is available, but "
@@ -150,6 +184,11 @@ def main() -> None:
         oxidation_seed=args.seed,
         oxidation_model=args.oxidation_model,
         allomorph=args.allomorph,
+        sulfation_degree=args.sulfation or 0.0,
+        sulfation_scope=args.sulfation_scope,
+        sulfation_protonated=args.sulfation_state == "protonated",
+        sulfation_seed=args.seed,
+        sulfation_model=args.sulfation_model,
     )
     report = validate(structure)
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -169,6 +208,11 @@ def main() -> None:
         print(f"Oxidation model: {structure.oxidation_model}")
         print(f"Eligible C6 sites: {structure.oxidation_eligible_sites}")
         print(f"Oxidized C6 sites: {report.oxidized_sites}")
+        print(f"Nominal net charge: {report.net_charge:+d} e")
+    if report.sulfated_sites:
+        print(f"Sulfation model: {structure.sulfation_model}")
+        print(f"Eligible C6 sites: {structure.sulfation_eligible_sites}")
+        print(f"Sulfated C6 sites: {report.sulfated_sites}")
         print(f"Nominal net charge: {report.net_charge:+d} e")
     if report.glycosidic_min is not None:
         print(

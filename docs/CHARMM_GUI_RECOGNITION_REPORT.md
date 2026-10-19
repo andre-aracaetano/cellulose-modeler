@@ -1,6 +1,7 @@
 # CHARMM-GUI carbohydrate-recognition investigation
 
-Date: 2026-09-02
+Initial investigation: 2026-09-02<br>
+C6 sulfation validation added: 2026-10-19
 
 ## Summary
 
@@ -135,6 +136,34 @@ C5-to-C6 projection along the outward transverse direction and the excluded
 alternating class had negative projection. Heavy-atom RMSD and maximum
 displacement relative to the uploaded PDB were both 0.000 A.
 
+### Paajanen-style surface-25% sulfated CNC, 18 chains x DP20
+
+The sulfation request selected 60 of the 120 globally pooled alternating C6
+sites from the 12 surface chains. This equals 25% of the 240 C6 sites on those
+chains. Selection was seeded but not balanced per chain. CHARMM-GUI 3.7
+recognized the sulfate half-esters and returned a PDB/PSF pair with:
+
+| Check | Result |
+| --- | ---: |
+| Residues | 360 BGLC |
+| Atoms | 7,794 |
+| Sulfated residues / S6 atoms | 60 / 60 |
+| Bonds | 8,136 |
+| Angles | 15,138 |
+| Dihedrals | 23,940 |
+| Net charge | -60.000000 e |
+| O6-S6 bonds | 60 |
+| S6-OS62 / S6-OS63 / S6-OS64 bonds | 60 each |
+| Sulfur atom type / charge | `SC` / +1.33 e |
+| Terminal oxygen type / charge | `OC2DP` / -0.65 e each |
+| O6-S6 range | 1.5991-1.6009 A |
+| Terminal S-O range | 1.4522-1.4542 A |
+
+Every sulfur was bonded to exactly `O6`, `OS62`, `OS63`, and `OS64`. The 60
+sulfates remained confined to the expected 12 surface segments; the six
+internal segments remained neutral. CHARMM-GUI restored hydroxyl hydrogens,
+used its force-field atom naming, and preserved the expected system charge.
+
 ## Automated regression coverage
 
 The test suite now checks:
@@ -158,7 +187,7 @@ Command:
 python -m unittest discover -s tests -v
 ```
 
-Result at release: 17 tests passed.
+Result for version 0.8.0: 32 tests passed.
 
 ## Recommended usage
 

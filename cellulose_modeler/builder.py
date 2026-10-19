@@ -216,6 +216,124 @@ def _apply_oxidation(
     return len(eligible)
 
 
+def _sulfate_residue(
+    residue: Residue, protonated: bool, occupied: list[Vec3]
+) -> None:
+    """Convert the C6 hydroxyl to a sulfate half-ester, C6-O-SO3(H/-)."""
+    carbon6 = residue.atom("C6")
+    oxygen6 = residue.atom("O6")
+    coordinate_axes: tuple[Vec3, ...] = (
+        (1.0, 0.0, 0.0),
+        (0.0, 1.0, 0.0),
+        (0.0, 0.0, 1.0),
+    )
+    tetrahedral_angle = math.radians(109.47)
+    co_axis = normalize(sub(carbon6.position, oxygen6.position))
+    co_seed = min(coordinate_axes, key=lambda axis: abs(dot(co_axis, axis)))
+    co_perpendicular = normalize(cross(co_axis, co_seed))
+    co_second = normalize(cross(co_axis, co_perpendicular))
+    nearby = [
+        position for position in occupied
+        if position not in {carbon6.position, oxygen6.position}
+        and norm(sub(position, oxygen6.position)) < 6.0
+    ]
+
+    candidates: list[tuple[float, Vec3, list[Vec3]]] = []
+    for co_step in range(12):
+        co_torsion = math.radians(co_step * 30.0)
+        co_radial = add(
+            scale(co_perpendicular, math.cos(co_torsion)),
+            scale(co_second, math.sin(co_torsion)),
+        )
+        sulfur_direction = normalize(add(
+            scale(co_axis, math.cos(tetrahedral_angle)),
+            scale(co_radial, math.sin(tetrahedral_angle)),
+        ))
+        sulfur_position = add(oxygen6.position, scale(sulfur_direction, 1.60))
+        ester_axis = normalize(sub(oxygen6.position, sulfur_position))
+        sulfur_seed = min(
+            coordinate_axes, key=lambda axis: abs(dot(ester_axis, axis))
+        )
+        sulfur_perpendicular = normalize(cross(ester_axis, sulfur_seed))
+        sulfur_second = normalize(cross(ester_axis, sulfur_perpendicular))
+        for phase_step in range(12):
+            phase = phase_step * 30.0
+            terminal_positions = []
+            for index, offset in enumerate((0.0, 120.0, 240.0), start=1):
+                torsion = math.radians(phase + offset)
+                radial = add(
+                    scale(sulfur_perpendicular, math.cos(torsion)),
+                    scale(sulfur_second, math.sin(torsion)),
+                )
+                direction = normalize(add(
+                    scale(ester_axis, math.cos(tetrahedral_angle)),
+                    scale(radial, math.sin(tetrahedral_angle)),
+                ))
+                length = 1.60 if protonated and index == 3 else 1.47
+                terminal_positions.append(
+                    add(sulfur_position, scale(direction, length))
+                )
+            new_positions = [sulfur_position, *terminal_positions]
+            clearance = min(
+                (norm(sub(position, other))
+                 for position in new_positions for other in nearby),
+                default=float("inf"),
+            )
+            candidates.append((clearance, sulfur_position, terminal_positions))
+
+    _, sulfur_position, terminal_positions = max(candidates, key=lambda item: item[0])
+    sulfur = Atom("S6", "S", sulfur_position)
+    terminal_atoms = [
+        Atom(f"O6{index}", "O", position)
+        for index, position in enumerate(terminal_positions, start=1)
+    ]
+
+    residue.atoms.extend((sulfur, *terminal_atoms))
+    if protonated:
+        hydroxyl_oxygen = terminal_atoms[-1]
+        direction = normalize(sub(hydroxyl_oxygen.position, sulfur.position))
+        residue.atoms.append(
+            Atom("HO63", "H", add(hydroxyl_oxygen.position, scale(direction, 0.96)))
+        )
+    residue.sulfated = True
+    residue.sulfation_protonated = protonated
+    occupied.extend(atom.position for atom in (sulfur, *terminal_atoms))
+
+
+def _apply_sulfation(
+    chains: list[Chain],
+    degree: float,
+    scope: str,
+    protonated: bool,
+    seed: int | None,
+    model: str,
+) -> int:
+    """Attach C6 sulfate half-esters to a reproducible sample of eligible sites."""
+    if not 0.1 <= degree <= 1.0:
+        raise ValueError("sulfation_degree must be between 0.1 and 1.0")
+    if scope not in {"surface", "all"}:
+        raise ValueError("sulfation_scope must be 'surface' or 'all'")
+    if model not in {"random-surface", "paajanen"}:
+        raise ValueError("sulfation_model must be 'random-surface' or 'paajanen'")
+    if model == "paajanen" and scope != "surface":
+        raise ValueError("the Paajanen sulfation model requires sulfation_scope='surface'")
+    eligible_chains = _surface_chains(chains) if scope == "surface" else chains
+    eligible = [residue for chain in eligible_chains for residue in chain.residues]
+    if model == "paajanen":
+        eligible = _paajanen_eligible_residues(chains)
+    count = min(len(eligible), math.floor(len(eligible) * degree + 0.5))
+    selected = random.Random(seed).sample(eligible, count)
+    occupied = [
+        atom.position
+        for chain in chains
+        for residue in chain.residues
+        for atom in residue.atoms
+    ]
+    for residue in selected:
+        _sulfate_residue(residue, protonated, occupied)
+    return len(eligible)
+
+
 def _hydroxyl_position(
     oxygen: Atom, carbon: Atom, occupied: list[Vec3], bond_length: float = 0.96
 ) -> Vec3:
@@ -275,7 +393,7 @@ def _add_missing_hydroxyl_hydrogens(chains: list[Chain]) -> None:
                 ("O2", "C2", "HO2"),
                 ("O3", "C3", "HO3"),
             ]
-            if not residue.oxidized:
+            if not residue.oxidized and not residue.sulfated:
                 hydroxyls.append(("O6", "C6", "HO6"))
             if residue.number == 1:
                 hydroxyls.append(("O4", "C4", "HO4"))
@@ -298,6 +416,11 @@ def build_structure(
     oxidation_seed: int | None = None,
     oxidation_model: str = "random-surface",
     allomorph: str = "ibeta",
+    sulfation_degree: float = 0.0,
+    sulfation_scope: str = "surface",
+    sulfation_protonated: bool = False,
+    sulfation_seed: int | None = None,
+    sulfation_model: str = "random-surface",
 ) -> Structure:
     if glucose_units < 1:
         raise ValueError("glucose_units must be at least 1")
@@ -308,6 +431,12 @@ def build_structure(
         raise ValueError(
             "C6 oxidation is currently validated only for cellulose I-beta"
         )
+    if sulfation_degree and allomorph != "ibeta":
+        raise ValueError(
+            "C6 sulfation is currently implemented only for cellulose I-beta"
+        )
+    if oxidation_degree and sulfation_degree:
+        raise ValueError("oxidation and sulfation cannot be enabled together")
     chains = [
         _build_chain(
             reference, glucose_units, chain_type, site_translation,
@@ -323,6 +452,12 @@ def build_structure(
             chains, oxidation_degree, oxidation_scope, oxidation_protonated,
             oxidation_seed, oxidation_model,
         )
+    sulfation_eligible_sites = 0
+    if sulfation_degree:
+        sulfation_eligible_sites = _apply_sulfation(
+            chains, sulfation_degree, sulfation_scope, sulfation_protonated,
+            sulfation_seed, sulfation_model,
+        )
     _add_missing_hydroxyl_hydrogens(chains)
     _center_transverse(chains)
     return Structure(
@@ -330,4 +465,7 @@ def build_structure(
         oxidation_scope if oxidation_degree else None,
         oxidation_degree, oxidation_protonated, oxidation_seed,
         oxidation_model, eligible_sites, reference.key,
+        sulfation_scope if sulfation_degree else None,
+        sulfation_degree, sulfation_protonated, sulfation_seed,
+        sulfation_eligible_sites, sulfation_model,
     )

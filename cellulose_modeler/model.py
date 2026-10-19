@@ -19,6 +19,8 @@ class Residue:
     atoms: list[Atom] = field(default_factory=list)
     oxidized: bool = False
     oxidation_protonated: bool = False
+    sulfated: bool = False
+    sulfation_protonated: bool = False
 
     def atom(self, name: str) -> Atom:
         return next(atom for atom in self.atoms if atom.name == name)
@@ -45,3 +47,9 @@ class Structure:
     oxidation_model: str = "random-surface"
     oxidation_eligible_sites: int = 0
     reference_key: str = "ibeta"
+    sulfation_scope: str | None = None
+    sulfation_degree: float = 0.0
+    sulfation_protonated: bool = False
+    sulfation_seed: int | None = None
+    sulfation_eligible_sites: int = 0
+    sulfation_model: str = "random-surface"

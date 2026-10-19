@@ -24,6 +24,7 @@ class Validation:
     glycosidic_max: float | None
     chain_spacing_min: float | None
     oxidized_sites: int
+    sulfated_sites: int
     net_charge: int
 
 
@@ -46,7 +47,7 @@ def validate(structure: Structure) -> Validation:
                 raise ValueError(
                     f"unexpected 6-deoxy H63 in chain {chain.number}, residue {residue.number}"
                 )
-            if not residue.oxidized:
+            if not residue.oxidized and not residue.sulfated:
                 missing = set(NORMAL_GLUCOSE_ELEMENTS) - atoms.keys()
                 if missing:
                     raise ValueError(
@@ -65,6 +66,46 @@ def validate(structure: Structure) -> Validation:
                     ("C6", "H61", 0.95, 1.20),
                     ("C6", "H62", 0.95, 1.20),
                     ("O6", "HO6", 0.90, 1.05),
+                ):
+                    value = distance(atoms[first].position, atoms[second].position)
+                    if not lower <= value <= upper:
+                        raise ValueError(
+                            f"implausible {first}-{second} distance in chain "
+                            f"{chain.number}, residue {residue.number}: {value:.3f} A"
+                        )
+            elif residue.sulfated:
+                required = {
+                    "C6": "C", "H61": "H", "H62": "H", "O6": "O",
+                    "S6": "S", "O61": "O", "O62": "O", "O63": "O",
+                }
+                missing = set(required) - atoms.keys()
+                if missing:
+                    raise ValueError(
+                        f"incomplete sulfate half-ester in chain {chain.number}, "
+                        f"residue {residue.number}: missing {', '.join(sorted(missing))}"
+                    )
+                if residue.sulfation_protonated and "HO63" not in atoms:
+                    raise ValueError(
+                        f"missing sulfate proton in chain {chain.number}, "
+                        f"residue {residue.number}"
+                    )
+                if not residue.sulfation_protonated and "HO63" in atoms:
+                    raise ValueError(
+                        f"unexpected sulfate proton in chain {chain.number}, "
+                        f"residue {residue.number}"
+                    )
+                for name, element in required.items():
+                    if atoms[name].element != element:
+                        raise ValueError(
+                            f"wrong element for {name} in chain {chain.number}, "
+                            f"residue {residue.number}"
+                        )
+                for first, second, lower, upper in (
+                    ("C6", "O6", 1.30, 1.55),
+                    ("O6", "S6", 1.50, 1.70),
+                    ("S6", "O61", 1.35, 1.65),
+                    ("S6", "O62", 1.35, 1.65),
+                    ("S6", "O63", 1.35, 1.70),
                 ):
                     value = distance(atoms[first].position, atoms[second].position)
                     if not lower <= value <= upper:
@@ -105,8 +146,14 @@ def validate(structure: Structure) -> Validation:
         oxidized_sites=sum(
             residue.oxidized for chain in structure.chains for residue in chain.residues
         ),
+        sulfated_sites=sum(
+            residue.sulfated for chain in structure.chains for residue in chain.residues
+        ),
         net_charge=-sum(
             residue.oxidized and not residue.oxidation_protonated
+            for chain in structure.chains for residue in chain.residues
+        ) - sum(
+            residue.sulfated and not residue.sulfation_protonated
             for chain in structure.chains for residue in chain.residues
         ),
     )

@@ -97,3 +97,19 @@ The current oxidation implementations, particularly the Paajanen alternating
 surface-site model, are validated only for cellulose Iβ. Cellulose Modeler rejects
 oxidation requests for Iα, II, and III_I rather than silently transferring an
 Iβ-specific surface hypothesis to different crystal packings.
+
+## Scientific limitation of C6 sulfation
+
+The optional sulfation feature is an explicit atomistic hypothesis for sulfate
+half-esters on sulfuric-acid-derived cellulose Iβ nanocrystal surfaces. It
+preserves the experimental cellulose heavy-atom coordinates and attaches
+`OSO3H` or `OSO3-` through the existing C6 oxygen. C6 substitution is supported
+by NMR observations and is widely used in structural models, but exclusive C6
+regioselectivity has not been established for every CNC preparation; C2/C3
+substitution may be present or analytically unresolved. The default surface
+scope is therefore the experimentally motivated mode. Whole-crystallite
+sulfation is exposed only as a controlled modeling hypothesis.
+
+The sulfate atoms are generated geometrically and have not been energy
+minimized. CHARMM-GUI recognition and force-field parameterization remain to
+be validated independently; neither is implied by PDB connectivity alone.

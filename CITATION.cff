@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use Cellulose Modeler, cite this software and the primary crystallographic source for each allomorph used."
 title: "Cellulose Modeler"
 type: software
-version: 0.7.0
-date-released: 2026-09-04
+version: 0.8.0
+date-released: 2026-10-19
 authors:
   - family-names: "Caetano"
     given-names: "André de Araújo"

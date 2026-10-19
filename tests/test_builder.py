@@ -325,6 +325,168 @@ class BuilderTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_structure(2, [1], oxidation_degree=0.09)
 
+    def test_surface_c6_sulfation_is_reproducible_and_complete(self):
+        kwargs = dict(
+            glucose_units=20,
+            layers=[2, 3, 4, 4, 3, 2],
+            sulfation_degree=0.25,
+            sulfation_scope="surface",
+            sulfation_seed=344,
+        )
+        structure = build_structure(**kwargs)
+        repeated = build_structure(**kwargs)
+        report = validate(structure)
+        sulfated = [
+            (chain.number, residue.number)
+            for chain in structure.chains
+            for residue in chain.residues
+            if residue.sulfated
+        ]
+        repeated_sites = [
+            (chain.number, residue.number)
+            for chain in repeated.chains
+            for residue in chain.residues
+            if residue.sulfated
+        ]
+        self.assertEqual(sulfated, repeated_sites)
+        self.assertEqual(structure.sulfation_eligible_sites, 240)
+        self.assertEqual(report.sulfated_sites, 60)
+        self.assertEqual(report.oxidized_sites, 0)
+        self.assertEqual(report.net_charge, -60)
+        self.assertEqual(report.atoms, 7794)
+        surface_chain_numbers = {1, 2, 3, 5, 6, 9, 10, 13, 14, 16, 17, 18}
+        self.assertTrue(all(chain in surface_chain_numbers for chain, _ in sulfated))
+
+        residue = next(
+            residue for chain in structure.chains for residue in chain.residues
+            if residue.sulfated
+        )
+        names = {atom.name for atom in residue.atoms}
+        self.assertTrue({"C6", "H61", "H62", "O6", "S6", "O61", "O62", "O63"} <= names)
+        self.assertFalse({"HO6", "HO63"} & names)
+        self.assertAlmostEqual(distance(residue.atom("O6").position, residue.atom("S6").position), 1.60)
+        for oxygen in ("O61", "O62", "O63"):
+            self.assertAlmostEqual(distance(residue.atom("S6").position, residue.atom(oxygen).position), 1.47)
+
+        residues = [
+            (chain.number, residue)
+            for chain in structure.chains for residue in chain.residues
+        ]
+        sulfate_atoms = [
+            (chain_number, residue.number, atom)
+            for chain_number, residue in residues
+            for atom in residue.atoms
+            if atom.name in {"S6", "O61", "O62", "O63"}
+        ]
+        minimum_inter_residue = min(
+            distance(atom.position, other.position)
+            for chain_number, residue_number, atom in sulfate_atoms
+            for other_chain, other_residue in residues
+            if (chain_number, residue_number) != (other_chain, other_residue.number)
+            for other in other_residue.atoms
+        )
+        self.assertGreater(minimum_inter_residue, 1.2)
+
+    def test_protonated_all_chain_sulfation(self):
+        structure = build_structure(
+            10,
+            [2, 2],
+            sulfation_degree=0.1,
+            sulfation_scope="all",
+            sulfation_protonated=True,
+            sulfation_seed=7,
+        )
+        report = validate(structure)
+        self.assertEqual(report.sulfated_sites, 4)
+        self.assertEqual(report.net_charge, 0)
+        sulfated = [r for c in structure.chains for r in c.residues if r.sulfated]
+        self.assertTrue(all("HO63" in {atom.name for atom in r.atoms} for r in sulfated))
+        for residue in sulfated:
+            self.assertAlmostEqual(
+                distance(residue.atom("S6").position, residue.atom("O63").position),
+                1.60,
+            )
+            self.assertAlmostEqual(
+                distance(residue.atom("O63").position, residue.atom("HO63").position),
+                0.96,
+            )
+
+    def test_sulfation_validation_and_chemistry_exclusivity(self):
+        with self.assertRaises(ValueError):
+            build_structure(2, [1], sulfation_degree=0.09)
+        with self.assertRaisesRegex(ValueError, "cannot be enabled together"):
+            build_structure(2, [1], oxidation_degree=0.5, sulfation_degree=0.5)
+        for key in ("ialpha", "ii", "iii-i"):
+            with self.assertRaisesRegex(ValueError, "only for cellulose I-beta"):
+                build_structure(2, [1], allomorph=key, sulfation_degree=0.5)
+
+    def test_sulfated_pdb_connectivity_and_charmm_gui_profile(self):
+        structure = build_structure(
+            4, [2, 2], sulfation_degree=0.25, sulfation_seed=344,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "sulfated_charmm_gui.pdb"
+            write_pdb(path, structure, charmm_gui=True)
+            lines = path.read_text().splitlines()
+            atoms = [line for line in lines if line.startswith("ATOM")]
+            names = [line[12:16].strip() for line in atoms]
+            self.assertEqual(names.count("S6"), 4)
+            self.assertEqual(names.count("O61"), 4)
+            self.assertEqual(names.count("O62"), 4)
+            self.assertEqual(names.count("O63"), 4)
+            self.assertEqual(names.count("HO6"), 0)
+            self.assertIn("Experimental C6 sulfate-half-ester model enabled", path.read_text())
+
+            serial_key = {
+                int(line[6:11]): (line[21], int(line[22:26]), line[12:16].strip())
+                for line in atoms
+            }
+            edges = set()
+            for line in lines:
+                if line.startswith("CONECT"):
+                    values = [int(line[i:i + 5]) for i in range(6, len(line), 5)]
+                    edges.update(tuple(sorted((values[0], other))) for other in values[1:])
+            key_serial = {value: key for key, value in serial_key.items()}
+            for chain_id, residue_number, name in serial_key.values():
+                if name != "S6":
+                    continue
+                sulfur = key_serial[(chain_id, residue_number, "S6")]
+                for neighbor in ("O6", "O61", "O62", "O63"):
+                    expected = tuple(sorted((sulfur, key_serial[(chain_id, residue_number, neighbor)])))
+                    self.assertIn(expected, edges)
+
+    def test_paajanen_sulfation_uses_one_global_random_sample(self):
+        structure = build_structure(
+            20,
+            [2, 3, 4, 4, 3, 2],
+            sulfation_degree=0.50,
+            sulfation_scope="surface",
+            sulfation_seed=344,
+            sulfation_model="paajanen",
+        )
+        report = validate(structure)
+        self.assertEqual(structure.sulfation_eligible_sites, 120)
+        self.assertEqual(report.sulfated_sites, 60)
+        self.assertEqual(report.net_charge, -60)
+        self.assertEqual(report.sulfated_sites / 240, 0.25)
+
+        eligible_ids = {id(residue) for residue in _paajanen_eligible_residues(structure.chains)}
+        selected_by_chain = {}
+        for chain in structure.chains:
+            selected = [residue for residue in chain.residues if residue.sulfated]
+            if selected:
+                selected_by_chain[chain.number] = len(selected)
+                self.assertTrue(all(id(residue) in eligible_ids for residue in selected))
+        # The sample is global, not a fixed quota of five sites per surface chain.
+        self.assertNotEqual(set(selected_by_chain.values()), {5})
+
+    def test_paajanen_sulfation_requires_surface_scope(self):
+        with self.assertRaisesRegex(ValueError, "requires sulfation_scope='surface'"):
+            build_structure(
+                20, [2, 3, 4, 4, 3, 2], sulfation_degree=0.50,
+                sulfation_scope="all", sulfation_model="paajanen",
+            )
+
     def test_paajanen_18_chain_25_percent_of_eligible_sites(self):
         structure = build_structure(
             20,

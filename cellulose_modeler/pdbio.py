@@ -7,8 +7,8 @@ from .reference import get_reference
 
 
 CHAIN_IDS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-# HO62 is intentionally retained: unlike alcohol hydroxyl hydrogens, it
-# explicitly distinguishes a requested neutral COOH from COO- chemistry.
+# HO62 and HO63 are intentionally retained: unlike alcohol hydroxyl hydrogens,
+# they explicitly distinguish requested neutral COOH/OSO3H chemistry.
 HYDROXYL_HYDROGENS = frozenset({"HO1", "HO2", "HO3", "HO4", "HO6"})
 
 RESIDUE_BONDS = (
@@ -77,6 +77,21 @@ def write_pdb(
             f"REMARK  Oxidation state: {state}",
             f"REMARK  Random seed: {structure.oxidation_seed}",
         ))
+    sulfated_count = sum(
+        residue.sulfated for chain in structure.chains for residue in chain.residues
+    )
+    if structure.sulfation_scope is not None:
+        state = "protonated OSO3H" if structure.sulfation_protonated else "deprotonated OSO3-"
+        lines.extend((
+            "REMARK  Experimental C6 sulfate-half-ester model enabled",
+            f"REMARK  Sulfation eligibility model: {structure.sulfation_model}",
+            f"REMARK  Sulfation scope: {structure.sulfation_scope}",
+            f"REMARK  Requested sulfation degree: {structure.sulfation_degree:.6f}",
+            f"REMARK  Eligible C6 sites: {structure.sulfation_eligible_sites}",
+            f"REMARK  Sulfated C6 sites: {sulfated_count}",
+            f"REMARK  Sulfation state: {state}",
+            f"REMARK  Random seed: {structure.sulfation_seed}",
+        ))
     serial = 1
     serials: dict[tuple[int, int, str], int] = {}
     bonds: set[tuple[int, int]] = set()
@@ -125,6 +140,14 @@ def write_pdb(
                     b = serials[(chain.number, output_number, second)]
                     bonds.add(tuple(sorted((a, b))))
             for first, second in (("C6", "O61"), ("C6", "O62"), ("O62", "HO62")):
+                if first in names and second in names:
+                    a = serials[(chain.number, output_number, first)]
+                    b = serials[(chain.number, output_number, second)]
+                    bonds.add(tuple(sorted((a, b))))
+            for first, second in (
+                ("O6", "S6"), ("S6", "O61"), ("S6", "O62"),
+                ("S6", "O63"), ("O63", "HO63"),
+            ):
                 if first in names and second in names:
                     a = serials[(chain.number, output_number, first)]
                     b = serials[(chain.number, output_number, second)]
